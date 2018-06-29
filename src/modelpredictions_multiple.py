@@ -49,10 +49,10 @@ def ReadData(fh,iniline=0,sep=' '):
         
 	igot = fh.readlines() #//rf content from dataset
         
-	links = {} # Matrix of ratings. rows: relation between u and g. columns: ratings. content: number of times seen relation between u and g with rating r #//U//R on line 99
+	links = {} # Matrix of ratings. rows: relation between u and g with the format "uid_gid". columns: ratings (in this case 0 or 1). content: number of times seen relation between u and g with rating r #//U//R on line 99
         
-        uniquep = {} #//
-        uniqueg = {} #//
+        uniquep = {} # Relates the id user with its number of interactions
+        uniqueg = {} # Relates the id user with its number of interactions
         
         uid = 0 # autocorrelative number given to a user
         gid = 0 # autocorrelative number given to a game
@@ -98,7 +98,7 @@ def ReadData(fh,iniline=0,sep=' '):
                         links[e] = [0]*2 # //RF ratings is useless variable since statement has pipe behaviour # //? if r is a rating, then link[e] should be a tuple of 5 elements #//R line 334. Model behavies as a like/doesn't like ratings
                         links[e][int(r)] += 1 #//U if tuple in links[e] has just been initialized then the operator should be assignement and not acummulation
 	fh.close()
-        return links, uniquep,uniqueg,id2user,id2game,user2id,game2id
+        return links, uniquep, uniqueg, id2user, id2game, user2id, game2id
 
 
 ###########################################################3
@@ -326,28 +326,40 @@ def PrintResults(fname,logL,theta,eta,pr,nusers,ngames,K,L,R):
 ##us interessa el trainer
 if __name__=="__main__":
 
+        random.seed(os.getpid()) #//M//RF Fixed-value seed initialization does not make sense
+        
         K = int(sys.argv[1]) #Number of users
         L = int(sys.argv[2]) #Number of games
-        
-        crossval = [int(a) for a in sys.argv[3:]]
+        R = 2	#rating: 0 --> defect, 1 --> cooperate. Tipicament R = 5 en un recommender 
 
-        R = 2	#rating 0:defect cooperate: 1  ##típicament R =5 en un recommender 
+        crossval = [int(a) for a in sys.argv[3:]] # argument 3 or more are converted into int, that are crossvalidation values
 
-        random.seed(os.getpid()) #//M//RF Fixed-value seed initialization does not make sense
-#        crossval=[1]	#5 pel 5fold cross validation
         likely=[]
 
         for CV in crossval:
+                fin = '/export/home/shared/Projects/MrBanks/gael/Data/Data MMSBM/Folded/Data_mrk+rw/DataTrain_%d_mrk+rw.csv' %(CV) # generate filename of the datatrain used
+	        fh = open(fin, 'r') # create proxy to desired file
 
-        ## 1. llegir fitxers - no important
-	        print CV
-                fin = '/export/home/shared/Projects/MrBanks/gael/Data/Data MMSBM/Folded/Data_mrk+rw/DataTrain_%d_mrk+rw.csv' %(CV)
-	        fh=open(fin,'r')
+                links, users, games, id2u, id2g, u2id, g2id = ReadData(fh,iniline=1,sep='\t') #
 
-                links,users,games,id2u,id2g,u2id,g2id= ReadData(fh,iniline=1,sep='\t')
-                p=len(users)
-                m=len(games)
+                # links:  Matrix of ratings. rows: relation between u and g with the format "uid_gid". columns: ratings (in this case 0 or 1). content: number of times seen relation between u and g with rating r #//U//R on line 99
+                # users: Relates the id user with its number of interactions
+                # games Relates the id game with its number of interactions
+                # id2u: dictionary that relates user with id
+                # id2g dictionary that relates game with id
 
+        #user2id = {} # dictionary that relates id with user
+
+        # BIDIRECTIONAL DICTIONARY FOR GAMES
+        #game2id = {} # dictionary that relates id with games
+                
+        
+        
+        uid = 0 # autocorrelative number given to a user
+        gid = 0 # autocorrelative number given to a game
+                
+                p = len(users)
+                m =len(games)
 	        sampling=100
 
 	        for sam in range(sampling): ## number of times the likelihood maximizationis performed - gives better results
