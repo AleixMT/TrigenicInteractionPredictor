@@ -21,7 +21,7 @@ import sys
     
 from enum import Enum
 
-class Gene:
+class Model:
     
     def __init__(self, name, interaction):
         self.name = name
@@ -37,68 +37,7 @@ class Gene:
     def addInteraction(self, interaction):
         self.interactions.append(interaction)
         
-class Group:
-    
-    def __init__(self):
-        genes = []
-        
-    def __init__(self, genePointer):
-        genes = [genePointer]
-        
-class Pointer:
-        
-    def __init__(self, value):
-        if type(self) is Pointer:
-            raise Exception('Base is an abstract class and cannot be instantiated directly')
-        
-        self.value = value
 
-class GenePointer(Pointer):
-    
-    def __init__(self, gene, value):
-        super().__init__(value)
-        self.gene = gene
-
-class GroupPointer(Pointer):
-    
-    def __init__(self, group, value):
-        super().__init__(value)
-        self.group = group
-        
-class Interaction:
-    
-    def __init__(self, genes, score):
-        if type(self) is Interaction:
-            raise Exception('Base is an abstract class and cannot be instantiated directly')
-        
-        self.genes.extends(genes)
-        self.score = score
-        
-class DigenicInteraction(Interaction):
-
-    def __init__(self, genes, interactionType):
-        self.interactionType = interactionType
-        super().__init__(genes)
-        
-class TrigenicInteraction(Interaction):
-
-    def __init__(self, genes, interactionType):
-        self.interactionType = interactionType
-        super().__init__(genes)
-        
-class TypeTrigenic(Enum):
-    novel = auto()
-    unclassified = auto()
-    modifiedQm = auto()
-    modifiedQmAm = auto()
-    modifiedQmAM = auto()
-    modifiedQmAMm = auto()
-    modifiedAm = auto()
-    modifiedAM = auto()
-    modifiedAmM = auto()
-    
-class TypeDigenic(Enum):
-    digenic = auto()
     
 def getInput(genes, interaction):
     dataset = codecs.open(sys.argv[1], encoding='utf-8', mode='r+')
