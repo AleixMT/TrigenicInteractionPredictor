@@ -6,9 +6,10 @@
 # Version: 1.0                                                                                                  #
 #       																									    #
 # Description: This code tries to predict interaction between genes in Pichia pastoris. We use supplementary    #
-# materials from the article //cita to get our data. We treat every gene as a node in our network. Links are    #
-# every assay from the dataset between three genes. This links are tagged with 0 or 1 if there is interaction   #
-# or not.                                                                                                       #
+# materials from the article "Systematic analysis of complex genetic interactions"                              #
+# (http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our data.      #
+# We treat every gene as a node in our network. Links are every assay from the dataset between three genes.     #
+# This links are tagged with 0 or 1 if there is interaction or not.                                             #
 #                                                                                                               #
 # Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between tripletes of      #
 # genes. Every gene has a vector with the length of the number of groups. Every cell in this vector has the     #
@@ -25,7 +26,7 @@ import random
 import sys
 import time
 import copy
-from math import *
+import math
 
 
 class Model:
@@ -94,7 +95,7 @@ class Model:
 	# K 				--> number of groups of gene
 	# R 				--> Number of possible ratings [0|1]
 
-	def initializeParameters(self, k = None):
+	def initializeParameters(self, k=None):
 
 		if k is None:
 			k = 0
@@ -199,10 +200,10 @@ class Model:
 			if selectedInteractionType != 'trigenic' and selectedInteractionType != 'digenic' and selectedInteractionType != '*':
 				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
 
-			with codecs.open(filename, encoding='utf-8', mode='r') as file:
-				next(file)  # skip first line
+			with codecs.open(filename, encoding='utf-8', mode='r') as f:
+				next(f)  # skip first line
 
-				for line in file.readlines():
+				for line in f.readlines():
 					####
 					# SELECT *
 					# FROM dataset
@@ -261,19 +262,20 @@ class Model:
 					try:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
-					except:  # if link between n1 and n2 with rating r is the first time seen then
+					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
 						self.nlinks[str_name_gene_triplet] = [0] * 2
 						self.nlinks[str_name_gene_triplet][r] += 1
 						self.links[str_gene_triplet] = [0] * 2
 						self.links[str_gene_triplet][r] += 1
 
 				self.P = len(self.id_gene)  # get number of users
-				file.close()
+				f.close()
 
-		except ValueError as e:
-			print e
-		except IOError as e:
+		except ValueError as error:
+			print error
+		except IOError as error:
 			print 'Error, file does not exist or can\'t be read'
+			print error
 			return 0
 
 	# Method toString:
@@ -306,7 +308,7 @@ class Model:
 			for p in range(self.P):
 				text += "\n"
 				tab = ""
-				for i in range(2 - len(str(p)) / 4):
+				for _ in range(2 - len(str(p)) / 4):
 					tab += "\t"
 				text += str(p) + tab
 				for k in range(self.K):
@@ -320,7 +322,7 @@ class Model:
 			text += '\n'
 			for link in links:
 				tab = ""
-				for a in range(4 - len(link) / 4):
+				for _ in range(4 - len(link) / 4):
 					tab += "\t"
 				text += link + tab
 				for r in range(self.R):
@@ -339,9 +341,9 @@ class Model:
 		text += "Gene_ID\t\tGene_name\t\t\tnumAparitions\n"
 		for id in self.id_gene:
 			tab, ntab = "", ""
-			for b in range(3 - (len(str(id)) / 4)):
+			for _ in range(3 - (len(str(id)) / 4)):
 				tab += "\t"
-			for i in range(5 - len(self.id_gene[id]) / 4):
+			for _ in range(5 - len(self.id_gene[id]) / 4):
 				ntab += "\t"
 			text += str(id) + tab + self.id_gene[id] + ntab + str(self.uniqueg[id]) + '\n'
 
@@ -379,7 +381,7 @@ class Model:
 	# Arguments:
 	# 1.- Name of the output file. By-default file name will be out.txt.
 
-	def toFile(self, filename = None):
+	def toFile(self, filename=None):
 		try:
 			if filename is None:
 				filename = "out.txt"
@@ -453,7 +455,7 @@ class Model:
 						for r in range(self.R):
 							D[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
 			for r in range(self.R):
-				logL += ratingvector[r] * log(D[r])
+				logL += ratingvector[r] * math.log(D[r])
 		self.likelihood = logL
 		return logL
 
@@ -478,8 +480,15 @@ class Model:
 				for k in range(self.K):
 					self.npr[i][j][k] = [0.] * self.R
 
+	# Method makeIteration:
+	#
+	# Description: Do recursive computation to iterate over the pr, and theta vector. New values will be stored in
+	# npr and ntheta instance variables. Then, new values are normalized.
+	#
+	# Return Parameters:
+	# Updates and normalizes new values in npr and ntheta data structures.
 
-	def MakeIteration(self):
+	def makeIteration(self):
 
 		for triplete, ratingvector in self.links.items():  # e X R iteration
 			g1, g2, g3 = triplete.split('_')
@@ -621,7 +630,7 @@ if __name__ == "__main__":
 			model.nInit()
 			if iteration % frequencyCheck == 0:
 				like = model.computeLikelihood()
-				if fabs((like - like0) / like0) < 0.0001:
+				if math.fabs((like - like0) / like0) < 0.0001:
 					print "Likelihood has converged"
 					break
 				like0 = like
