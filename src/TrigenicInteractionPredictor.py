@@ -164,6 +164,7 @@ class Model:
 	# all positive or negative interactions.
 	# · digenic interaction cut-off in the original article (p < 0.05, |e| > 0.08)
 	# · trigenic interactions cut-off in the original article (p < 0.05, t < -0.08)
+	# 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
 	#
 	# Return parameters:
 	# Fills with data the next variables: links, nlinks, id_gene, gene_id, P.
@@ -193,7 +194,7 @@ class Model:
 	# 7.- P-value
 	# 8.- Interaction type
 
-	def getInput(self, filename, selectedInteractionType, cutoffValue):
+	def getInput(self, filename, selectedInteractionType, cutoffValue, discard=0):
 		try:
 			gid = 0
 
@@ -213,7 +214,7 @@ class Model:
 					fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
 
 					# dataset selection (now we can read from both types of dataset, s1 and s2)
-					if len(fields) == 12:
+					if len(fields) >= 11:
 						fields.pop(5)
 
 					# if current interaction type is not the type that we want to select, next element
@@ -228,7 +229,10 @@ class Model:
 					if float(fields[5]) < cutoffValue:
 						r = 1
 					else:
-						r = 0
+						if discard:
+							continue
+						else:
+							r = 0
 
 					# create list with the three implicated alleles
 					gene_triplet = fields[1].split('+')
@@ -316,12 +320,12 @@ class Model:
 			return text
 
 		def printLinks(links):
-			text = '\n'
+			text = ''
 			for r in range(self.R):
 				text += "\tAparitions_R=" + str(r)
 			text += '\n'
-			for link in links:
-				tab = ""
+			for link in links.keys():
+				tab = "\t"
 				for _ in range(4 - len(link) / 4):
 					tab += "\t"
 				text += link + tab
@@ -339,13 +343,13 @@ class Model:
 		# String of list of genes
 		text += "LIST OF REGISTERED GENES\n"
 		text += "Gene_ID\t\tGene_name\t\t\tnumAparitions\n"
-		for id in self.id_gene:
+		for gid in self.id_gene:
 			tab, ntab = "", ""
-			for _ in range(3 - (len(str(id)) / 4)):
+			for _ in range(3 - (len(str(gid)) / 4)):
 				tab += "\t"
-			for _ in range(5 - len(self.id_gene[id]) / 4):
+			for _ in range(5 - len(self.id_gene[gid]) / 4):
 				ntab += "\t"
-			text += str(id) + tab + self.id_gene[id] + ntab + str(self.uniqueg[id]) + '\n'
+			text += str(gid) + tab + self.id_gene[gid] + ntab + str(self.uniqueg[gid]) + '\n'
 
 		# String of list of links by ID
 		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
@@ -408,6 +412,7 @@ class Model:
 			if link in model.nlinks.keys():
 				continue
 			else:
+				print link
 				diff.append(link)
 		return diff
 
@@ -505,7 +510,7 @@ class Model:
 				for j in range(self.K):
 					for k in range(self.K):
 						for r in range(self.R):
-							## auxiliary variable
+							# auxiliary variable
 							a = (self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]) / D[r]
 							self.ntheta[id1][i] += a * ratingvector[r]
 							self.ntheta[id2][j] += a * ratingvector[r]
@@ -538,16 +543,16 @@ class Model:
 
 	def compareDataset(self, model):
 		if not self.compareLinks(model):
-			print "First dataset is subgraph of second dataset for nodes"
+			print "First dataset is subgraph of second dataset for links"
 			node = 1
 		else:
-			print "First dataset is not subgraph of second dataset for nodes"
+			print "First dataset is not subgraph of second dataset for links"
 			node = 0
 		if not self.compareGenes(model):
-			print "First dataset is subgraph of second dataset for links"
+			print "First dataset is subgraph of second dataset for nodes"
 			link = 1
 		else:
-			print "First dataset is not subgraph of second dataset for links"
+			print "First dataset is not subgraph of second dataset for nodes"
 			link = 0
 
 		return link and node
@@ -562,13 +567,15 @@ class Model:
 def compareS1withS2():
 
 	rawmodel = Model()
-	rawmodel.getInput('Data_S1.tsv', 'trigenic', -0.08)
+	rawmodel.getInput('Data_S1.tsv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
 	treatedmodel = Model()
-	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)
+	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
+	treatedmodel.toFile("treated.txt")
+	rawmodel.toFile("raw.txt")
 	print "\nComparing treated with raw: "
-	if treatedmodel.compareDataset(rawmodel):  # we use rawmodel static function
+	if treatedmodel.compareDataset(rawmodel):
 		sub0 = 1
 	else:
 		sub0 = 0
@@ -619,8 +626,11 @@ if __name__ == "__main__":
 		cutOffValue = -0.08
 
 	model = Model()
-	model.getInput(filename, interactionType, cutOffValue)
+	model.getInput(filename, interactionType, cutOffValue, 1)
+
 	compareS1withS2()
+	print "\nFinish comparation. Beginning Iterations:"
+
 	for sample in range(int(samples)):
 		model.initializeParameters(10)
 		like0 = model.computeLikelihood()
