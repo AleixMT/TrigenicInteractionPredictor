@@ -573,7 +573,7 @@ def compareS1withS2():
 	rawmodel.getInput('Data_S1.tsv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
 	treatedmodel = Model()
-	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
+	treatedmodel.getInput('Data_S2.tsv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
 	treatedmodel.toFile("treated.txt")	
 	rawmodel.toFile("raw.txt")
