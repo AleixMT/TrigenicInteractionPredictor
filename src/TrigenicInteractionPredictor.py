@@ -271,27 +271,11 @@ class Model:
 					try:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
-					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
-					#//DEBUG
-							
+					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then							
 						self.nlinks[str_name_gene_triplet] = [0] * 2
 						self.nlinks[str_name_gene_triplet][r] += 1
 						self.links[str_gene_triplet] = [0] * 2
 						self.links[str_gene_triplet][r] += 1
-						if str_gene_triplet == "1063_189_226":
-							cosa =+ 1
-							print cosa
-							print fields
-							print len(fields)
-							print str_name_gene_triplet
-							print str_gene_triplet
-							print self.nlinks[str_name_gene_triplet]
-							print self.links[str_gene_triplet]
-							print fields[4]
-							print fields[5]
-							print fields[6]
-						if unicode(str_name_gene_triplet) == u'ddc1Δ_elg1Δ_mad1Δ':
-							print "this is cosa:"+str(cosa)
 						
 				self.P = len(self.id_gene)  # get number of users
 				f.close()
@@ -301,7 +285,6 @@ class Model:
 		except IOError as error:
 			print 'Error, file does not exist or can\'t be read'
 			print error
-			return 0
 		
 	# Method toString:
 	#
@@ -433,7 +416,6 @@ class Model:
 			if link in model.nlinks.keys():
 				continue
 			else:
-				print link
 				diff.append(link)
 		return diff
 
@@ -593,14 +575,9 @@ def compareS1withS2():
 	treatedmodel = Model()
 	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
-	treatedmodel.toFile("treated.txt")
-	#//DEBUG
-	print "felchipo"
-	print rawmodel.nlinks[u'ddc1Δ_elg1Δ_mad1Δ']	
-	print rawmodel.links["1063_189_226"]
-	print treatedmodel.links["1063_189_226"]
-	
+	treatedmodel.toFile("treated.txt")	
 	rawmodel.toFile("raw.txt")
+	
 	print "\nComparing treated with raw: "
 	if treatedmodel.compareDataset(rawmodel):
 		sub0 = 1
