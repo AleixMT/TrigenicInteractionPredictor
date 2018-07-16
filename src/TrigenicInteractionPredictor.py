@@ -202,7 +202,12 @@ class Model:
 				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
 
 			with codecs.open(filename, encoding='utf-8', mode='r') as f:
-				next(f)  # skip first line
+				line = f.readline()  
+				fields = re.split(r'\t+', line)
+				if len(fields) == 12:
+					reading_raw = 1
+				else:
+					reading_raw = 0
 
 				for line in f.readlines():
 					####
@@ -212,9 +217,9 @@ class Model:
 					# AND Combined mutant type = ["trigenic"|"digenic"|*]
 
 					fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
-
+										
 					# dataset selection (now we can read from both types of dataset, s1 and s2)
-					if len(fields) >= 11:
+					if reading_raw:
 						fields.pop(5)
 
 					# if current interaction type is not the type that we want to select, next element
@@ -267,11 +272,27 @@ class Model:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
 					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+					#//DEBUG
+							
 						self.nlinks[str_name_gene_triplet] = [0] * 2
 						self.nlinks[str_name_gene_triplet][r] += 1
 						self.links[str_gene_triplet] = [0] * 2
 						self.links[str_gene_triplet][r] += 1
-
+						if str_gene_triplet == "1063_189_226":
+							cosa =+ 1
+							print cosa
+							print fields
+							print len(fields)
+							print str_name_gene_triplet
+							print str_gene_triplet
+							print self.nlinks[str_name_gene_triplet]
+							print self.links[str_gene_triplet]
+							print fields[4]
+							print fields[5]
+							print fields[6]
+						if unicode(str_name_gene_triplet) == u'ddc1Δ_elg1Δ_mad1Δ':
+							print "this is cosa:"+str(cosa)
+						
 				self.P = len(self.id_gene)  # get number of users
 				f.close()
 
@@ -281,7 +302,7 @@ class Model:
 			print 'Error, file does not exist or can\'t be read'
 			print error
 			return 0
-
+		
 	# Method toString:
 	#
 	# Description: Returns a formatted string with all data contained in the object.
@@ -573,6 +594,12 @@ def compareS1withS2():
 	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
 	treatedmodel.toFile("treated.txt")
+	#//DEBUG
+	print "felchipo"
+	print rawmodel.nlinks[u'ddc1Δ_elg1Δ_mad1Δ']	
+	print rawmodel.links["1063_189_226"]
+	print treatedmodel.links["1063_189_226"]
+	
 	rawmodel.toFile("raw.txt")
 	print "\nComparing treated with raw: "
 	if treatedmodel.compareDataset(rawmodel):
