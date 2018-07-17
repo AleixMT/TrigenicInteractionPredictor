@@ -570,10 +570,10 @@ class Model:
 def compareS1withS2():
 
 	rawmodel = Model()
-	rawmodel.getInput('Data_S1.tsv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
+	rawmodel.getInput('Data_S1.csv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
 	treatedmodel = Model()
-	treatedmodel.getInput('Data_S2.tsv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
+	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
 	treatedmodel.toFile("treated.txt")	
 	rawmodel.toFile("raw.txt")
@@ -625,7 +625,7 @@ if __name__ == "__main__":
 		iterations = 0
 		samples = 10
 		frequencyCheck = 25
-		filename = "Data_S1.tsv"
+		filename = "Data_S1.csv"
 		interactionType = "trigenic"
 		cutOffValue = -0.08
 
