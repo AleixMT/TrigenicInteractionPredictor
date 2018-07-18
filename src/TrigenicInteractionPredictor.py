@@ -48,14 +48,11 @@ class Model:
 		self.pr = []
 		self.npr = []
 
-		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 wit the format "id1_id2_id3".
+		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 with the format "id1_id2_id3" in links,
+		# and "namegene1_namegene2_namegene3" in nlinks.
 		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
 		#  and gene3 with rating r
 		self.links = {}
-
-		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 wit the format "gene1_gene2_gene3".
-		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
-		#  and gene3 with rating r
 		self.nlinks = {}
 
 		# Relates the id gene with its number of interactions
@@ -103,6 +100,7 @@ class Model:
 			k = random.random()
 
 		self.setK(int(k))  # set K value to initilize parameters
+		self.vlikelihood = [] # empty likelihood vector
 
 		for _ in range(self.P):  # Iterate over the number of genes
 			a = [random.random() for _ in xrange(self.K)]  # xrange to generate big lists (optimization)
@@ -165,7 +163,7 @@ class Model:
 	# · digenic interaction cut-off in the original article (p < 0.05, |e| > 0.08)
 	# · trigenic interactions cut-off in the original article (p < 0.05, t < -0.08)
 	# 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
-	#
+	# 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset
 	# Return parameters:
 	# Fills with data the next variables: links, nlinks, id_gene, gene_id, P.
 	#
@@ -194,9 +192,10 @@ class Model:
 	# 7.- P-value
 	# 8.- Interaction type
 
-	def getInput(self, filename, selectedInteractionType, cutoffValue, discard=0):
+	def getInput(self, filename, selectedInteractionType, cutoffValue, discard=0, numlines=0):
 		try:
 			gid = 0
+			counter = 0
 
 			if selectedInteractionType != 'trigenic' and selectedInteractionType != 'digenic' and selectedInteractionType != '*':
 				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
@@ -271,12 +270,17 @@ class Model:
 					try:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
-					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then							
+					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then 
 						self.nlinks[str_name_gene_triplet] = [0] * 2
 						self.nlinks[str_name_gene_triplet][r] += 1
 						self.links[str_gene_triplet] = [0] * 2
 						self.links[str_gene_triplet][r] += 1
-						
+
+					# limit number of read lines
+					counter += 1
+					if counter == numlines:
+						break
+
 				self.P = len(self.id_gene)  # get number of users
 				f.close()
 
@@ -285,7 +289,91 @@ class Model:
 		except IOError as error:
 			print 'Error, file does not exist or can\'t be read'
 			print error
-		
+
+	# Method toCSV
+	#
+	# Description: Returns a CSV-like format string with data from the model
+	def toCSV(self):
+
+		# Returns a csv string of a pr/npr-like 3D matrix
+		def printMatrix(matrix):
+			text = ''
+			for i in range(self.K):
+				text += str(i) + "\t"
+				for a in range(self.K):
+					text += str(a) + "\t"
+				for j in range(self.K):
+					text += str(j) + "\t"
+					for k in range(self.K):
+						for r in range(self.R):
+							text += "{0:.12f}".format(matrix[i][j][k][r]) + " "
+						text += "\t"
+					text += "\n"
+				text += "\n\n"
+			return text
+
+		# Returns a formatted string of a theta/ntheta-like two components vector
+		def printVector(vector):
+			text = '\n\t'
+			for a in range(self.P):
+				text += str(a) + "\t"
+			for p in range(self.P):
+				text += "\n"
+				text += str(p) + "\t"
+				for k in range(self.K):
+					text += "{0:.12f}".format(vector[p][k]) + "\t"
+			return text
+
+		def printLinks(links):
+			text = ''
+			for r in range(self.R):
+				text += "\tAparitions_R=" + str(r)
+			text += '\n'
+			for link in links.keys():
+				text += link + "\t"
+				for r in range(self.R):
+					text += str(links[link][r]) + "\t"
+				text += '\n'
+			return text
+
+		text = "Max Likelihood: " + str(self.likelihood) + "\n"
+		text += "Likelihood vector: \n" + self.toStringLikelihood()
+		text += "\nNumber of genes (P): " + str(self.P) + "\n"
+		text += "Number of links: " + str(len(self.links)) + "\n"
+		text += "Number of groups of genes (K): " + str(self.K) + "\n"
+		text += "Number of possible ratings (R): " + str(self.R) + "\n\n"
+
+		# String of list of genes
+		text += "LIST OF REGISTERED GENES\n"
+		text += "Gene_ID\tGene_name\tnumAparitions\n"
+		for gid in self.id_gene:
+			text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
+
+		# String of list of links by ID
+		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
+		text += "gid1_gid2_gid3"
+		text += printLinks(self.links)
+
+		# String of list of links by gene name
+		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
+		text += "n1_n2_n3"
+		text += printLinks(self.nlinks)
+
+		# For both pr/npr matrix
+		text += "\nMATRIX OF PROBABILITIES PR\n"
+		text += printMatrix(self.pr)
+
+		text += "\nMATRIX OF PROBABILITIES NPR\n"
+		text += printMatrix(self.npr)
+
+		# Fpr both theta/ntheta vector
+		text += "\n\nTHETA VECTOR\n"
+		text += printVector(self.theta)
+
+		text += "\n\nNTHETA VECTOR\n"
+		text += printVector(self.ntheta)
+
+		return text
 	# Method toString:
 	#
 	# Description: Returns a formatted string with all data contained in the object.
@@ -338,15 +426,16 @@ class Model:
 				text += '\n'
 			return text
 
-		text = "Likelihood: " + str(self.likelihood) + "\n"
-		text += "Likelihood vector: " + str(self.vlikelihood) + "\n"
-		text += "Number of genes (P): " + str(self.P) + "\n"
+		text = "Max Likelihood: " + str(self.likelihood) + "\n"
+		text += "Likelihood vector: \n" + self.toStringLikelihood()
+		text += "\nNumber of genes (P): " + str(self.P) + "\n"
+		text += "Number of links: " + len(self.links) + "\n"
 		text += "Number of groups of genes (K): " + str(self.K) + "\n"
 		text += "Number of possible ratings (R): " + str(self.R) + "\n\n"
 
 		# String of list of genes
 		text += "LIST OF REGISTERED GENES\n"
-		text += "Gene_ID\t\tGene_name\t\t\tnumAparitions\n"
+		text += "Gene_ID\tGene_name\tnumAparitions\n"
 		for gid in self.id_gene:
 			tab, ntab = "", ""
 			for _ in range(3 - (len(str(gid)) / 4)):
@@ -466,7 +555,16 @@ class Model:
 				logL += ratingvector[r] * math.log(D[r])
 		self.likelihood = logL
 		return logL
-
+	
+	# Method toStringLikelihood:
+	#
+	# Description: Prints the likelihood vector in csv format splitted by tabs (\t)
+	def toStringLikelihood(self):
+		text = "Sample\titeration\tlikelihood\n"
+		for sample, iteration, likelihood in self.vlikelihood:
+			text += str(sample)+"\t"+str(iteration)+"\t"+str(likelihood)+"\n"
+		return text
+			
 	# Method shiftValues:
 	#
 	# Description: Copies values from n* data structures to the current structures
@@ -527,14 +625,14 @@ class Model:
 				self.ntheta[i][k] /= float(self.uniqueg[i])
 
 		# divide the probability of the group k giving rate to a item l with a rating r between the sum of all ratings
-		for i in range(self.P):
-			for j in range(self.P):
-				for k in range(self.P):
+		for i in range(self.K):
+			for j in range(self.K):
+				for k in range(self.K):
 					D = self.eps
 					for r in range(self.R):
-						D = D + self.npr[i][j][k][r]
+						D += self.npr[i][j][k][r]
 					for r in range(self.R):
-						self.npr[i][j][k][r] = self.npr[i][j][k][r] / D
+						self.npr[i][j][k][r] /= D
 
 	# Method compareDataset(model):
 	#
@@ -619,39 +717,57 @@ if __name__ == "__main__":
 		filename = sys.argv[4]
 		interactionType = sys.argv[5]
 		cutOffValue = sys.argv[6]
+		k = sys.argv[7]
 
 	# BY-DEFAULT VALUES
 	except IndexError:
-		iterations = 0
+		iterations = 20000
 		samples = 10
-		frequencyCheck = 25
+		frequencyCheck = 100
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
 		cutOffValue = -0.08
+		k = 10
+	
+	print "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n****************************************\n"
+	print "Doing "+str(samples)+" samples of "+str(iterations)+" iterations"
+	print "Data is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. \nTau/epsilon cutOffvalue is "+str(cutOffValue)
+	print "K value (number of groups) is "+str(k)
 
 	model = Model()
-	model.getInput(filename, interactionType, cutOffValue, 1)
+	model.getInput(filename, interactionType, cutOffValue, 0, 10000)
 
-	compareS1withS2()
-	print "\nFinish comparation. Beginning Iterations:"
+	print "\nStarting algorithm:"
 
 	for sample in range(int(samples)):
-		model.initializeParameters(10)
+		print "\nSample "+str(1 + sample)+":"
+		model.initializeParameters(k)
+		print "\nParameters have been initialized"
 		like0 = model.computeLikelihood()
+		print "\nInitial likelihood is: "+str(like0)
+
 		for iteration in range(iterations):
 			model.makeIteration()
 			model.shiftValues()
 			model.nInit()
 			if iteration % frequencyCheck == 0:
 				like = model.computeLikelihood()
+				print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
+				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
+				f = codecs.open("csvdata.csv", encoding='utf-8', mode="w+")
+				f.write(model.toCSV())
+				f.close()
 				if math.fabs((like - like0) / like0) < 0.0001:
-					print "Likelihood has converged"
+					print "\n\t***************************\n\t* Likelihood has converged *\n\t***************************"
 					break
 				like0 = like
+			
+		# print to file 			
+		str_vlikelihood = model.toStringLikelihood()
+		f = open("vlikelihoods_"+str(sample+1)+".csv", "w+")
+		f.write(str_vlikelihood)
+		f.close()
 
-		like = model.computeLikelihood()
-		model.vlikelihood.append(like)  # append result into the global vector of likelihoods
 		model.toFile("out"+str(sample)+".txt")
 
-	time.sleep(5)
 
