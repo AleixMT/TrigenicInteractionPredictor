@@ -11,7 +11,7 @@
 # We treat every gene as a node in our network. Links are every assay from the dataset between three genes.     #
 # This links are tagged with 0 or 1 if there is interaction or not.                                             #
 #                                                                                                               #
-# Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between tripletes of      #
+# Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between triplets of      #
 # genes. Every gene has a vector with the length of the number of groups. Every cell in this vector has the     #
 # possibility of a gene behaving like one concrete group.                                                       #
 #                                                                                                               #
@@ -24,7 +24,6 @@ import codecs
 import os
 import random
 import sys
-import time
 import copy
 import math
 
@@ -79,7 +78,8 @@ class Model:
 
 	# Method initializeParameters:
 	#
-	# Description: Initializes theta and pr with random values and ntheta and npr with random values
+	# Description: Initializes theta and pr with random values and ntheta and npr with random values.
+	# We will use pr and theta to do the iteration and npr and ntheta to store the new values
 	#
 	# Arguments:
 	# 1.- K (number of group of genes) can be given using this method directly. Calling the method
@@ -87,25 +87,25 @@ class Model:
 	#
 	# Return parameters:
 	# ntheta / theta 	--> vector of possibilities of a gene belonging to a determinate group of genes
-	# npr / pr 			--> matrix of possibilities relating a triplete of group of genes in a certain rating
+	# npr / pr 			--> matrix of possibilities relating a triplet of group of genes in a certain rating
 	# P 				--> num of genes
 	# K 				--> number of groups of gene
 	# R 				--> Number of possible ratings [0|1]
 
-	def initializeParameters(self, k=None):
+	def initialize_parameters(self, kvalue=None):
 
-		if k is None:
-			k = 0
-		while k <= 0:  # if k is 0 or negative initialize k with a random value
-			k = random.random()
+		if kvalue is None:
+			kvalue = 0
+		while kvalue <= 0:  # if k is 0 or negative initialize k with a random value
+			kvalue = random.random()
 
-		self.setK(int(k))  # set K value to initilize parameters
-		self.vlikelihood = [] # empty likelihood vector
+		self.setk(int(kvalue))  # set K value to initialize parameters
+		self.vlikelihood = []  # empty likelihood vector
 
 		for _ in range(self.P):  # Iterate over the number of genes
 			a = [random.random() for _ in xrange(self.K)]  # xrange to generate big lists (optimization)
 			self.theta.append(a)  # appends to theta a vector of random values
-			self.ntheta.append([0.0] * self.K) # generate a vector of reals with number of genes size and append it to ntheta
+			self.ntheta.append([0.0] * self.K)  # generate a vector of reals with number of genes size and append it to ntheta
 
 		# Generate pr and npr, 3D matrix with vectors of R components on its cells
 		for i in range(self.K):
@@ -125,27 +125,27 @@ class Model:
 
 		# Normalization for theta vector of genes:
 		for i in range(self.P):  # Iterate over number of genes
-			sumTheta = 0.  # sum of possibilities of theta vector for gene i
+			sumtheta = 0.  # sum of possibilities of theta vector for gene i
 			for k in range(self.K):  # iterate over number of groups of genes
-				sumTheta += self.theta[i][k]  # and get the sum of prob. of vector theta for gene 1
+				sumtheta += self.theta[i][k]  # and get the sum of prob. of vector theta for gene 1
 			for k in range(self.K):  # normalization for all components,
 				try:
-					self.theta[i][k] /= sumTheta
+					self.theta[i][k] /= sumtheta
 				except ZeroDivisionError:
-					self.theta[i][k] /= (sumTheta + self.eps)  # adding an small value to avoid dividing by zero
+					self.theta[i][k] /= (sumtheta + self.eps)  # adding an small value to avoid dividing by zero
 
 		# Normalization of the vector probability for each gene having interaction with two other genes
 		for i in range(self.K):
 			for j in range(self.K):
 				for k in range(self.K):
-					sumPr = 0.  # Acumulator of possibilities for all ratings
+					sumpr = 0.  # Acumulator of possibilities for all ratings
 					for r in range(self.R):
-						sumPr += self.pr[i][j][k][r]
+						sumpr += self.pr[i][j][k][r]
 					for r in range(self.R):  # sum of prob of a user from group K giving rate R to a item from group L is 1
 						try:
-							self.pr[i][j][k][r] /= sumPr
+							self.pr[i][j][k][r] /= sumpr
 						except ZeroDivisionError:
-							self.pr[i][j][k][r] /= (sumPr + self.eps)
+							self.pr[i][j][k][r] /= (sumpr + self.eps)
 
 	# Method getInput:
 	#
@@ -192,16 +192,16 @@ class Model:
 	# 7.- P-value
 	# 8.- Interaction type
 
-	def getInput(self, filename, selectedInteractionType, cutoffValue, discard=0, numlines=0):
+	def get_input(self, argfilename, selectedinteractiontype, cutoffvalue, discard=0, numlines=0):
 		try:
 			gid = 0
 			counter = 0
 
-			if selectedInteractionType != 'trigenic' and selectedInteractionType != 'digenic' and selectedInteractionType != '*':
+			if selectedinteractiontype != 'trigenic' and selectedinteractiontype != 'digenic' and selectedinteractiontype != '*':
 				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
 
-			with codecs.open(filename, encoding='utf-8', mode='r') as f:
-				line = f.readline()  
+			with codecs.open(argfilename, encoding='utf-8', mode='r') as fileref:
+				line = fileref.readline()
 				fields = re.split(r'\t+', line)
 				if len(fields) == 12:
 					reading_raw = 1
@@ -216,21 +216,21 @@ class Model:
 					# AND Combined mutant type = ["trigenic"|"digenic"|*]
 
 					fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
-										
+
 					# dataset selection (now we can read from both types of dataset, s1 and s2)
 					if reading_raw:
 						fields.pop(5)
 
 					# if current interaction type is not the type that we want to select, next element
-					if selectedInteractionType != "*":  # will be activated if selectedInteractionType different from *
-						if fields[4] != selectedInteractionType:
+					if selectedinteractiontype != "*":  # will be activated if selectedInteractionType different from *
+						if fields[4] != selectedinteractiontype:
 							continue
 
 					if float(fields[6]) >= 0.05:  # check P-Value < 0.05, else, next
 						continue
 
 					# decide if positive or negative interaction taking in account cutoffValue
-					if float(fields[5]) < cutoffValue:
+					if float(fields[5]) < cutoffvalue:
 						r = 1
 					else:
 						if discard:
@@ -270,7 +270,7 @@ class Model:
 					try:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
-					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then 
+					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
 						self.nlinks[str_name_gene_triplet] = [0] * 2
 						self.nlinks[str_name_gene_triplet][r] += 1
 						self.links[str_gene_triplet] = [0] * 2
@@ -290,54 +290,61 @@ class Model:
 			print 'Error, file does not exist or can\'t be read'
 			print error
 
-	# Method toCSV
+	# Method tostring
 	#
-	# Description: Returns a CSV-like format string with data from the model
-	def toCSV(self):
+	# Description: Returns a CSV-like (using one tab as separator between fields) format string with data from the model
+	def to_string(self):
+
+		# Prints the likelihood vector in csv format splitted by tabs (\t)
+		def tostring_likelihood(vector):
+			txt = "Sample\titeration\tlikelihood\n"
+			for num_sample, num_iteration, num_likelihood in vector:
+				txt += str(num_sample) + "\t" + str(num_iteration) + "\t" + str(num_likelihood) + "\n"
+			return txt
 
 		# Returns a csv string of a pr/npr-like 3D matrix
-		def printMatrix(matrix):
-			text = ''
+		def print_matrix(matrix):
+			txt = ''
 			for i in range(self.K):
-				text += str(i) + "\t"
+				txt += str(i) + "\t"
 				for a in range(self.K):
-					text += str(a) + "\t"
+					txt += str(a) + "\t"
 				for j in range(self.K):
-					text += str(j) + "\t"
+					txt += str(j) + "\t"
 					for k in range(self.K):
 						for r in range(self.R):
-							text += "{0:.12f}".format(matrix[i][j][k][r]) + " "
-						text += "\t"
-					text += "\n"
-				text += "\n\n"
-			return text
+							txt += "{0:.12f}".format(matrix[i][j][k][r]) + " "
+						txt += "\t"
+					txt += "\n"
+				txt += "\n\n"
+			return txt
 
 		# Returns a formatted string of a theta/ntheta-like two components vector
-		def printVector(vector):
-			text = '\n\t'
+		def print_vector(vector):
+			txt = '\n\t'
 			for a in range(self.P):
-				text += str(a) + "\t"
+				txt += str(a) + "\t"
 			for p in range(self.P):
-				text += "\n"
-				text += str(p) + "\t"
+				txt += "\n"
+				txt += str(p) + "\t"
 				for k in range(self.K):
-					text += "{0:.12f}".format(vector[p][k]) + "\t"
-			return text
+					txt += "{0:.12f}".format(vector[p][k]) + "\t"
+			return txt
 
-		def printLinks(links):
-			text = ''
+		def print_links(links):
+			txt = ''
 			for r in range(self.R):
-				text += "\tAparitions_R=" + str(r)
-			text += '\n'
+				txt += "\tAparitions_R=" + str(r)
+			txt += '\n'
 			for link in links.keys():
-				text += link + "\t"
+				txt += link + "\t"
 				for r in range(self.R):
-					text += str(links[link][r]) + "\t"
-				text += '\n'
-			return text
+					txt += str(links[link][r]) + "\t"
+				txt += '\n'
+			return txt
 
 		text = "Max Likelihood: " + str(self.likelihood) + "\n"
-		text += "Likelihood vector: \n" + self.toStringLikelihood()
+		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
 		text += "\nNumber of genes (P): " + str(self.P) + "\n"
 		text += "Number of links: " + str(len(self.links)) + "\n"
 		text += "Number of groups of genes (K): " + str(self.K) + "\n"
@@ -352,123 +359,26 @@ class Model:
 		# String of list of links by ID
 		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
 		text += "gid1_gid2_gid3"
-		text += printLinks(self.links)
+		text += print_links(self.links)
 
 		# String of list of links by gene name
 		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
 		text += "n1_n2_n3"
-		text += printLinks(self.nlinks)
+		text += print_links(self.nlinks)
 
 		# For both pr/npr matrix
 		text += "\nMATRIX OF PROBABILITIES PR\n"
-		text += printMatrix(self.pr)
+		text += print_matrix(self.pr)
 
 		text += "\nMATRIX OF PROBABILITIES NPR\n"
-		text += printMatrix(self.npr)
+		text += print_matrix(self.npr)
 
 		# Fpr both theta/ntheta vector
 		text += "\n\nTHETA VECTOR\n"
-		text += printVector(self.theta)
+		text += print_vector(self.theta)
 
 		text += "\n\nNTHETA VECTOR\n"
-		text += printVector(self.ntheta)
-
-		return text
-	# Method toString:
-	#
-	# Description: Returns a formatted string with all data contained in the object.
-	def toString(self):
-
-		# Returns a formatted string of a pr/npr-like 3D matrix
-		def printMatrix(matrix):
-			text = ''
-			for i in range(self.K):
-				text += str(i) + "\n\n\t\t"
-				for a in range(self.K):
-					text += str(a) + "\t\t\t\t\t\t\t\t"
-				for j in range(self.K):
-					text += str(j) + "\t\t"
-					for k in range(self.K):
-						for r in range(self.R):
-							text += "{0:.12f}".format(matrix[i][j][k][r]) + " "
-						text += "\t"
-					text += "\n"
-				text += "\n\n"
-			return text
-
-		# Returns a formatted string of a theta/ntheta-like two components vector
-		def printVector(vector):
-			text = '\n\t'
-			for a in range(self.P):
-				text += str(a) + "\t\t\t\t\t\t\t\t"
-			for p in range(self.P):
-				text += "\n"
-				tab = ""
-				for _ in range(2 - len(str(p)) / 4):
-					tab += "\t"
-				text += str(p) + tab
-				for k in range(self.K):
-					text += "{0:.12f}".format(vector[p][k]) + "\t"
-			return text
-
-		def printLinks(links):
-			text = ''
-			for r in range(self.R):
-				text += "\tAparitions_R=" + str(r)
-			text += '\n'
-			for link in links.keys():
-				tab = "\t"
-				for _ in range(4 - len(link) / 4):
-					tab += "\t"
-				text += link + tab
-				for r in range(self.R):
-					text += str(links[link][r]) + "\t\t\t\t"
-				text += '\n'
-			return text
-
-		text = "Max Likelihood: " + str(self.likelihood) + "\n"
-		text += "Likelihood vector: \n" + self.toStringLikelihood()
-		text += "\nNumber of genes (P): " + str(self.P) + "\n"
-		text += "Number of links: " + len(self.links) + "\n"
-		text += "Number of groups of genes (K): " + str(self.K) + "\n"
-		text += "Number of possible ratings (R): " + str(self.R) + "\n\n"
-
-		# String of list of genes
-		text += "LIST OF REGISTERED GENES\n"
-		text += "Gene_ID\tGene_name\tnumAparitions\n"
-		for gid in self.id_gene:
-			tab, ntab = "", ""
-			for _ in range(3 - (len(str(gid)) / 4)):
-				tab += "\t"
-			for _ in range(5 - len(self.id_gene[gid]) / 4):
-				ntab += "\t"
-			text += str(gid) + tab + self.id_gene[gid] + ntab + str(self.uniqueg[gid]) + '\n'
-
-		# String of list of links by ID
-		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
-		text += "gid1_gid2_gid3"
-		text += printLinks(self.links)
-
-		# String of list of links by gene name
-		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
-		text += "n1_n2_n3"
-		text += printLinks(self.nlinks)
-
-		# For both pr/npr matrix
-		text += "\nMATRIX OF PROBABILITIES PR\n"
-		text += printMatrix(self.pr)
-
-		text += "\nMATRIX OF PROBABILITIES NPR\n"
-		text += printMatrix(self.npr)
-
-		# Fpr both theta/ntheta vector
-		text += "\n\nTHETA VECTOR\n"
-		text += printVector(self.theta)
-
-		text += "\n\nNTHETA VECTOR\n"
-		text += printVector(self.ntheta)
-
-		return text
+		text += print_vector(self.ntheta)
 
 	# Method toFile(string):
 	#
@@ -478,13 +388,13 @@ class Model:
 	# Arguments:
 	# 1.- Name of the output file. By-default file name will be out.txt.
 
-	def toFile(self, filename=None):
+	def to_file(self, name_file=None):
 		try:
-			if filename is None:
-				filename = "out.txt"
-			f = codecs.open(filename, encoding='utf-8', mode="w+")
-			f.write(self.toString())
-			f.close()
+			if name_file is None:
+				name_file = "out.txt"
+			fileref = codecs.open(name_file, encoding='utf-8', mode="w+")
+			fileref.write(self.to_string())
+			fileref.close()
 
 		except IOError:
 			print "I/O error"
@@ -498,11 +408,11 @@ class Model:
 	# 1.- Returns "None" List if graph defined by "self" argument is a subgraph of "model" argument, otherwise, will
 	# return the lacking links in b.
 
-	def compareLinks(self, model):
+	def compare_links(self, arg_model):
 		diff = []
 
 		for link in self.nlinks.keys():
-			if link in model.nlinks.keys():
+			if link in arg_model.nlinks.keys():
 				continue
 			else:
 				diff.append(link)
@@ -517,11 +427,11 @@ class Model:
 	# 1.- Returns "None" List if graph defined by "self" argument is a subgraph of "model" argument, otherwise, will
 	# return the lacking genes in b.
 
-	def compareGenes(self, model):
+	def compare_genes(self, arg_model):
 		diff = []
 
 		for gene in self.gene_id.keys():
-			if gene in model.gene_id.keys():
+			if gene in arg_model.gene_id.keys():
 				continue
 			else:
 				diff.append(gene)
@@ -530,8 +440,8 @@ class Model:
 	# Method setK(int):
 	#
 	# Description: Sets the K value in model (number of user groups)
-	def setK(self, k):
-		self.K = k
+	def setk(self, k_value):
+		self.K = k_value
 
 	# Method computeLikelihood:
 	#
@@ -539,36 +449,27 @@ class Model:
 	#
 	# Return Parameters:
 	# 1.- Returns the likelihood.
-	def computeLikelihood(self):
-		logL = 0.
-		for triplete, ratingvector in self.links.items():  # e X ra iteration
-			g1, g2, g3 = triplete.split('_')
+	def compute_likelihood(self):
+		log_l = 0.
+		for triplet, rating_vector in self.links.items():  # e X ra iteration
+			g1, g2, g3 = triplet.split('_')
 			id1, id2, id3 = int(g1), int(g2), int(g3)  # get IDs from three genes from link
-			D = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
+			d = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
 
 			for i in range(self.K):
 				for j in range(self.K):
 					for k in range(self.K):
 						for r in range(self.R):
-							D[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
+							d[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
 			for r in range(self.R):
-				logL += ratingvector[r] * math.log(D[r])
-		self.likelihood = logL
-		return logL
-	
-	# Method toStringLikelihood:
-	#
-	# Description: Prints the likelihood vector in csv format splitted by tabs (\t)
-	def toStringLikelihood(self):
-		text = "Sample\titeration\tlikelihood\n"
-		for sample, iteration, likelihood in self.vlikelihood:
-			text += str(sample)+"\t"+str(iteration)+"\t"+str(likelihood)+"\n"
-		return text
+				log_l += rating_vector[r] * math.log(d[r])
+		self.likelihood = log_l
+		return log_l
 			
 	# Method shiftValues:
 	#
 	# Description: Copies values from n* data structures to the current structures
-	def shiftValues(self):
+	def shift_values(self):
 		self.theta = copy.copy(self.ntheta)
 		for i in range(self.K):
 			for j in range(self.K):
@@ -578,7 +479,7 @@ class Model:
 	# Method nInit:
 	#
 	# Description: Reinitialization of n* data structures
-	def nInit(self):
+	def n_init(self):
 		for i in range(self.P):
 			self.ntheta[i] = [0.] * self.K
 		for i in range(self.K):
@@ -594,29 +495,29 @@ class Model:
 	# Return Parameters:
 	# Updates and normalizes new values in npr and ntheta data structures.
 
-	def makeIteration(self):
+	def make_iteration(self):
 
-		for triplete, ratingvector in self.links.items():  # e X R iteration
-			g1, g2, g3 = triplete.split('_')
+		for triplet, rating_vector in self.links.items():  # e X R iteration
+			g1, g2, g3 = triplet.split('_')
 			id1, id2, id3 = int(g1), int(g2), int(g3)  # get IDs from three genes from link
-			D = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
+			d = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
 
 			for i in range(self.K):
 				for j in range(self.K):
 					for k in range(self.K):
 						for r in range(self.R):
-							D[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
+							d[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
 
 			for i in range(self.K):
 				for j in range(self.K):
 					for k in range(self.K):
 						for r in range(self.R):
 							# auxiliary variable
-							a = (self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]) / D[r]
-							self.ntheta[id1][i] += a * ratingvector[r]
-							self.ntheta[id2][j] += a * ratingvector[r]
-							self.ntheta[id3][k] += a * ratingvector[r]
-							self.npr[i][j][k][r] += a * ratingvector[r]
+							a = (self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]) / d[r]
+							self.ntheta[id1][i] += a * rating_vector[r]
+							self.ntheta[id2][j] += a * rating_vector[r]
+							self.ntheta[id3][k] += a * rating_vector[r]
+							self.npr[i][j][k][r] += a * rating_vector[r]
 
 		# Normalizations:
 		# divide all possibilities of player i belonging to a group k with the number of relation of that user
@@ -628,11 +529,11 @@ class Model:
 		for i in range(self.K):
 			for j in range(self.K):
 				for k in range(self.K):
-					D = self.eps
+					d = self.eps
 					for r in range(self.R):
-						D += self.npr[i][j][k][r]
+						d += self.npr[i][j][k][r]
 					for r in range(self.R):
-						self.npr[i][j][k][r] /= D
+						self.npr[i][j][k][r] /= d
 
 	# Method compareDataset(model):
 	#
@@ -642,14 +543,14 @@ class Model:
 	# Return parameters:
 	# 1.- True if the first dataset is subgraph for genes and links, False if not.
 
-	def compareDataset(self, model):
-		if not self.compareLinks(model):
+	def compare_dataset(self, arg_model):
+		if not self.compare_links(arg_model):
 			print "First dataset is subgraph of second dataset for links"
 			node = 1
 		else:
 			print "First dataset is not subgraph of second dataset for links"
 			node = 0
-		if not self.compareGenes(model):
+		if not self.compare_genes(arg_model):
 			print "First dataset is subgraph of second dataset for nodes"
 			link = 1
 		else:
@@ -665,25 +566,25 @@ class Model:
 # and its unique purpose is demonstrate that the selection criteria specified in article is consistent
 # with obtained data from filtering dataset S1 for trigenic interaction.
 
-def compareS1withS2():
+def compares1withs2():
 
 	rawmodel = Model()
-	rawmodel.getInput('Data_S1.csv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
+	rawmodel.get_input('Data_S1.csv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
 	treatedmodel = Model()
-	treatedmodel.getInput('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
+	treatedmodel.get_input('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
 
-	treatedmodel.toFile("treated.txt")	
-	rawmodel.toFile("raw.txt")
+	treatedmodel.to_file("treated.txt")
+	rawmodel.to_file("raw.txt")
 	
 	print "\nComparing treated with raw: "
-	if treatedmodel.compareDataset(rawmodel):
+	if treatedmodel.compare_dataset(rawmodel):
 		sub0 = 1
 	else:
 		sub0 = 0
 
 	print "\nComparing raw with treated: "
-	if rawmodel.compareDataset(treatedmodel):
+	if rawmodel.compare_dataset(treatedmodel):
 		sub1 = 1
 	else:
 		sub1 = 0
@@ -717,7 +618,7 @@ if __name__ == "__main__":
 		filename = sys.argv[4]
 		interactionType = sys.argv[5]
 		cutOffValue = sys.argv[6]
-		k = sys.argv[7]
+		argk = sys.argv[7]
 
 	# BY-DEFAULT VALUES
 	except IndexError:
@@ -727,48 +628,40 @@ if __name__ == "__main__":
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
 		cutOffValue = -0.08
-		k = 10
+		argk = 10
 	
-	print "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n****************************************\n"
-	print "Doing "+str(samples)+" samples of "+str(iterations)+" iterations"
-	print "Data is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. \nTau/epsilon cutOffvalue is "+str(cutOffValue)
-	print "K value (number of groups) is "+str(k)
+	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
+	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations"
+	msg += "Data is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
+	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)
+	print msg
 
 	model = Model()
-	model.getInput(filename, interactionType, cutOffValue, 0, 10000)
+	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
 
 	print "\nStarting algorithm:"
 
 	for sample in range(int(samples)):
 		print "\nSample "+str(1 + sample)+":"
-		model.initializeParameters(k)
+		model.initialize_parameters(argk)
 		print "\nParameters have been initialized"
-		like0 = model.computeLikelihood()
+		like0 = model.compute_likelihood()
 		print "\nInitial likelihood is: "+str(like0)
 
 		for iteration in range(iterations):
-			model.makeIteration()
-			model.shiftValues()
-			model.nInit()
-			if iteration % frequencyCheccd Py
-			k == 0:
-				like = model.computeLikelihood()
+			model.make_iteration()
+			model.shift_values()
+			model.n_init()
+			if iteration % frequencyCheck == 0:
+				like = model.compute_likelihood()
 				print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
 				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
 				f = codecs.open("csvdata.csv", encoding='utf-8', mode="w+")
-				f.write(model.toCSV())
+				f.write(model.to_file())
 				f.close()
 				if math.fabs((like - like0) / like0) < 0.0001:
 					print "\n\t***************************\n\t* Likelihood has converged *\n\t***************************"
 					break
 				like0 = like
-			
-		# print to file 			
-		str_vlikelihood = model.toStringLikelihood()
-		f = open("vlikelihoods_"+str(sample+1)+".csv", "w+")
-		f.write(str_vlikelihood)
-		f.close()
 
-		model.toFile("out"+str(sample)+".txt")
-
-
+		model.to_file("out"+str(sample)+".txt")
