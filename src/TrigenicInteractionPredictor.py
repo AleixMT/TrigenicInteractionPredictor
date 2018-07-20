@@ -208,7 +208,7 @@ class Model:
 				else:
 					reading_raw = 0
 
-				for line in f.readlines():
+				for line in fileref.readlines():
 					####
 					# SELECT *
 					# FROM dataset
@@ -282,7 +282,7 @@ class Model:
 						break
 
 				self.P = len(self.id_gene)  # get number of users
-				f.close()
+				fileref.close()
 
 		except ValueError as error:
 			print error
@@ -380,6 +380,8 @@ class Model:
 		text += "\n\nNTHETA VECTOR\n"
 		text += print_vector(self.ntheta)
 
+		return text
+
 	# Method toFile(string):
 	#
 	# Description: Calls the toString function and prints it in a file. Overwrites the file if the file name given is
@@ -393,7 +395,8 @@ class Model:
 			if name_file is None:
 				name_file = "out.txt"
 			fileref = codecs.open(name_file, encoding='utf-8', mode="w+")
-			fileref.write(self.to_string())
+			data = self.to_string()
+			fileref.write(data)
 			fileref.close()
 
 		except IOError:
@@ -632,7 +635,7 @@ if __name__ == "__main__":
 	
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
 	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations"
-	msg += "Data is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
+	msg += "\nData is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
 	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)
 	print msg
 
@@ -652,13 +655,16 @@ if __name__ == "__main__":
 			model.make_iteration()
 			model.shift_values()
 			model.n_init()
+
+			# //Debug
+			like = model.compute_likelihood()
+			print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
+
 			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
 				print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
 				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
-				f = codecs.open("csvdata.csv", encoding='utf-8', mode="w+")
-				f.write(model.to_file())
-				f.close()
+				model.to_file()
 				if math.fabs((like - like0) / like0) < 0.0001:
 					print "\n\t***************************\n\t* Likelihood has converged *\n\t***************************"
 					break
