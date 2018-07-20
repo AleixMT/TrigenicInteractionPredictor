@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #################################################################################################################
 # Authors: Aleix Marine i Tena (aleix.marine@estudiants.urv.cat)                                                #
@@ -11,12 +11,12 @@
 # We treat every gene as a node in our network. Links are every assay from the dataset between three genes.     #
 # This links are tagged with 0 or 1 if there is interaction or not.                                             #
 #                                                                                                               #
-# Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between triplets of      #
+# Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between triplets of      	#
 # genes. Every gene has a vector with the length of the number of groups. Every cell in this vector has the     #
 # possibility of a gene behaving like one concrete group.                                                       #
 #                                                                                                               #
 # Permissions: Needs permission to read from data files and to write in the same folder as the script if        #
-# toFile() method is called.                                                                                    #
+# to_File() method is called.                                                                                   #
 #################################################################################################################
 
 import re
@@ -26,6 +26,7 @@ import random
 import sys
 import copy
 import math
+import matplotlib.pyplot as plt
 
 
 class Model:
@@ -103,7 +104,7 @@ class Model:
 		self.vlikelihood = []  # empty likelihood vector
 
 		for _ in range(self.P):  # Iterate over the number of genes
-			a = [random.random() for _ in xrange(self.K)]  # xrange to generate big lists (optimization)
+			a = [random.random() for _ in range(self.K)]  # xrange to generate big lists (optimization)
 			self.theta.append(a)  # appends to theta a vector of random values
 			self.ntheta.append([0.0] * self.K)  # generate a vector of reals with number of genes size and append it to ntheta
 
@@ -115,7 +116,7 @@ class Model:
 				d = []
 				e = []
 				for k in range(self.K):
-					a = [random.random() for _ in xrange(self.R)]
+					a = [random.random() for _ in range(self.R)]
 					d.append(a)
 					e.append([0.] * self.R)
 				b.append(d)
@@ -285,10 +286,10 @@ class Model:
 				fileref.close()
 
 		except ValueError as error:
-			print error
+			print(error)
 		except IOError as error:
-			print 'Error, file does not exist or can\'t be read'
-			print error
+			print('Error, file does not exist or can\'t be read')
+			print(error)
 
 	# Method tostring
 	#
@@ -400,7 +401,7 @@ class Model:
 			fileref.close()
 
 		except IOError:
-			print "I/O error"
+			print("I/O error")
 
 	# Method compareLinks:
 	#
@@ -548,19 +549,40 @@ class Model:
 
 	def compare_dataset(self, arg_model):
 		if not self.compare_links(arg_model):
-			print "First dataset is subgraph of second dataset for links"
+			print("First dataset is subgraph of second dataset for links")
 			node = 1
 		else:
-			print "First dataset is not subgraph of second dataset for links"
+			print("First dataset is not subgraph of second dataset for links")
 			node = 0
 		if not self.compare_genes(arg_model):
-			print "First dataset is subgraph of second dataset for nodes"
+			print("First dataset is subgraph of second dataset for nodes")
 			link = 1
 		else:
-			print "First dataset is not subgraph of second dataset for nodes"
+			print("First dataset is not subgraph of second dataset for nodes")
 			link = 0
 
 		return link and node
+
+	def plot_likelihood(self):
+		i = 0
+		print(self.vlikelihood[0][0])
+		print(self.vlikelihood)
+		data_x = [self.vlikelihood[0][1]]
+		data_y = [self.vlikelihood[0][2]]
+		print(self.vlikelihood[0][2])
+
+		itera = self.vlikelihood[0][1]
+		while itera < self.vlikelihood[1+i][0]:
+			data_x.append(self.vlikelihood[1+i][1])
+			print("bucle x")
+			print(data_x)
+			data_y.append(self.vlikelihood[1+i][2])
+			print("bucle y")
+			print(data_y)
+
+		plt.plot(data_x, data_y)
+		plt.title('likelihood over iterations')
+		plt.show()
 
 
 # Function compareS1withS2:
@@ -568,6 +590,7 @@ class Model:
 # Description: Checks that the filtered dataset and the raw dataset are equal. The code in this function is hardcoded
 # and its unique purpose is demonstrate that the selection criteria specified in article is consistent
 # with obtained data from filtering dataset S1 for trigenic interaction.
+
 
 def compares1withs2():
 
@@ -580,22 +603,22 @@ def compares1withs2():
 	treatedmodel.to_file("treated.txt")
 	rawmodel.to_file("raw.txt")
 	
-	print "\nComparing treated with raw: "
+	print("\nComparing treated with raw: ")
 	if treatedmodel.compare_dataset(rawmodel):
 		sub0 = 1
 	else:
 		sub0 = 0
 
-	print "\nComparing raw with treated: "
+	print("\nComparing raw with treated: ")
 	if rawmodel.compare_dataset(treatedmodel):
 		sub1 = 1
 	else:
 		sub1 = 0
 
 	if sub1 and sub0:
-		print "\nDatasets are equal"
+		print("\nDatasets are equal")
 	else:
-		print "\nDatasets are different"
+		print("\nDatasets are different")
 
 # Main Function:
 #
@@ -625,8 +648,8 @@ if __name__ == "__main__":
 
 	# BY-DEFAULT VALUES
 	except IndexError:
-		iterations = 20000
-		samples = 10
+		iterations = 7
+		samples = 1
 		frequencyCheck = 100
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
@@ -637,19 +660,19 @@ if __name__ == "__main__":
 	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations"
 	msg += "\nData is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
 	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)
-	print msg
+	print(msg)
 
 	model = Model()
 	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
 
-	print "\nStarting algorithm:"
+	print("\nStarting algorithm:")
 
 	for sample in range(int(samples)):
-		print "\nSample "+str(1 + sample)+":"
+		print("\nSample "+str(1 + sample)+":")
 		model.initialize_parameters(argk)
-		print "\nParameters have been initialized"
+		print("\nParameters have been initialized")
 		like0 = model.compute_likelihood()
-		print "\nInitial likelihood is: "+str(like0)
+		print("\nInitial likelihood is: "+str(like0))
 
 		for iteration in range(iterations):
 			model.make_iteration()
@@ -658,16 +681,17 @@ if __name__ == "__main__":
 
 			# //Debug
 			like = model.compute_likelihood()
-			print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
+			print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
+			model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
 
 			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
-				print "\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like)
-				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
+				print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
 				model.to_file()
 				if math.fabs((like - like0) / like0) < 0.0001:
-					print "\n\t***************************\n\t* Likelihood has converged *\n\t***************************"
+					print("\n\t***************************\n\t* Likelihood has converged *\n\t***************************")
 					break
 				like0 = like
 
 		model.to_file("out"+str(sample)+".txt")
+		model.plot_likelihood()
