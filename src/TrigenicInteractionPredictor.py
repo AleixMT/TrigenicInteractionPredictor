@@ -638,7 +638,8 @@ if __name__ == "__main__":
 			model.makeIteration()
 			model.shiftValues()
 			model.nInit()
-			if iteration % frequencyCheck == 0:
+			if iteration % frequencyCheccd Py
+			k == 0:
 				like = model.computeLikelihood()
 				if math.fabs((like - like0) / like0) < 0.0001:
 					print "Likelihood has converged"
