@@ -26,7 +26,8 @@ import random
 import sys
 import copy
 import math
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Model:
@@ -36,7 +37,7 @@ class Model:
 	# Description: Initializes data structures of algorithm.
 
 	def __init__(self):
-		# Vectors of probability, that relates the probability of user u belonging to a determinate group
+		# Vectors of probability, that relates the probability of a gene belonging to a determinate group
 		self.ntheta = []
 		self.theta = []
 
@@ -52,8 +53,12 @@ class Model:
 		# and "namegene1_namegene2_namegene3" in nlinks.
 		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
 		#  and gene3 with rating r
-		self.links = {}
 		self.nlinks = {}
+		self.links = {}
+
+		# Same format as the previous dictionary, but we will use this data structure to calculate metrics, and not for
+		# iterations
+		self.test_links = {}
 
 		# Relates the id gene with its number of interactions
 		self.uniqueg = {}
@@ -202,6 +207,7 @@ class Model:
 				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
 
 			with codecs.open(argfilename, encoding='utf-8', mode='r') as fileref:
+
 				line = fileref.readline()
 				fields = re.split(r'\t+', line)
 				if len(fields) == 12:
@@ -291,7 +297,82 @@ class Model:
 			print('Error, file does not exist or can\'t be read')
 			print(error)
 
-	# Method tostring
+	# Method fold:
+	#
+	# Description: "Folds" the data in the object model.
+	# We implemented this method instead of extending the get_input method because this gives us the possibility to
+	# interact with data when we know that all samples in the object are the truly selected. In the get_input method
+	# we have different criteria to select samples, so probably all samples from file won't be selected.
+	#
+	# To do the folding we will calculate the number of samples that we have in our object model, and the we will get the
+	# 20 % of the samples randomly. The samples chosen for the test set will be deleted and data structures from train_set
+	# will be modified accordingly.
+	#
+	# Return Parameters:
+	# - Fills the dictionary self.test_links with the 20 % of the links from self.links
+	# - Deletes this 20 % of links from the original dictionary.
+	# - Modifies the other data structures for coherence.
+	def fold(self):
+		test_set_size = int(len(self.links) / 5)
+
+		# linealization of dictionary to use choice method
+		arraylinks = []
+		for triplet, rating in self.links.items():
+			arraylinks.append(triplet)
+
+		for _ in range(test_set_size):
+			# // // replace: whether the sample is or not without replacement
+			triplet = np.random.choice(arraylinks, replace=True)  # take a triplet and delete it
+			arraylinks.remove(triplet)
+
+			# obtain rating for the current triplet. (assuming just one given rating betwwen r=0 or r=1)
+			if self.links[triplet][0]:
+				rating = 0
+			else:
+				rating = 1
+
+			try:
+				self.test_links[triplet][rating] += 1  # link is seen +1 time (probably the maximum will be 1)
+			except KeyError:
+				self.test_links[triplet] = [0] * 2  # Initialize dictionary position
+				self.test_links[triplet][rating] = 1
+
+			ids = triplet.split("_")
+
+			names = []
+			for identifier in ids:
+				name = self.id_gene[int(identifier)]
+				names.append(name)
+				self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+
+			names.sort()  # create identifier string
+			str_names = '_'.join(names)
+			self.nlinks.pop(str_names)  # delete aparition from the gene name dictionary
+			self.links.pop(triplet)  # delete aparition from the gene ID dictionary
+
+		print(len(self.test_links))
+		print(self.test_links)
+
+	# Method do_prediction:
+	#
+	# Returns the probability of interaction between three genes identified by their IDs received as arguments
+	def do_prediction(self, id1, id2, id3):
+		sum = 0
+		for i in range(self.K):
+			for j in range(self.K):
+				for k in range(self.K):
+					sum += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k]
+		return sum
+
+	def results(self):
+		result = []
+		for triplet, rating in self.test_links.items():
+			id1, id2, id3 = triplet.split("_")
+			result.append([triplet, self.do_prediction(id1, id2, id3), rating])
+
+		return result
+
+	# Method tostring:
 	#
 	# Description: Returns a CSV-like (using one tab as separator between fields) format string with data from the model
 	def to_string(self):
@@ -314,7 +395,7 @@ class Model:
 					txt += str(j) + "\t"
 					for k in range(self.K):
 						for r in range(self.R):
-							txt += "{0:.12f}".format(matrix[i][j][k][r]) + " "
+							txt += "{0:.12f}".format(matrix[i][j][k][r]) + "\t"
 						txt += "\t"
 					txt += "\n"
 				txt += "\n\n"
@@ -524,7 +605,7 @@ class Model:
 							self.npr[i][j][k][r] += a * rating_vector[r]
 
 		# Normalizations:
-		# divide all possibilities of player i belonging to a group k with the number of relation of that user
+		# divide all possibilities of i belonging to a group k with the number of relation of that user
 		for i in range(self.P):
 			for k in range(self.K):
 				self.ntheta[i][k] /= float(self.uniqueg[i])
@@ -563,6 +644,7 @@ class Model:
 
 		return link and node
 
+'''
 	def plot_likelihood(self):
 		i = 0
 		print(self.vlikelihood[0][0])
@@ -583,7 +665,7 @@ class Model:
 		plt.plot(data_x, data_y)
 		plt.title('likelihood over iterations')
 		plt.show()
-
+'''
 
 # Function compareS1withS2:
 #
@@ -648,8 +730,8 @@ if __name__ == "__main__":
 
 	# BY-DEFAULT VALUES
 	except IndexError:
-		iterations = 7
-		samples = 1
+		iterations = 250
+		samples = 30
 		frequencyCheck = 100
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
@@ -684,14 +766,17 @@ if __name__ == "__main__":
 			print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
 			model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
 
-			if iteration % frequencyCheck == 0:
+			'''if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
 				print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
 				model.to_file()
-				if math.fabs((like - like0) / like0) < 0.0001:
+				if math.fabs((like - like0) / like0) < 0.01:
 					print("\n\t***************************\n\t* Likelihood has converged *\n\t***************************")
 					break
-				like0 = like
+				like0 = like'''
+
 
 		model.to_file("out"+str(sample)+".txt")
-		model.plot_likelihood()
+		#result = model.results()
+		#print(result)
+		# model.plot_likelihood()
