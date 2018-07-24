@@ -26,7 +26,7 @@ import random
 import sys
 import copy
 import math
-#import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -100,20 +100,23 @@ class Model:
 
 	def initialize_parameters(self, kvalue=None):
 
-		if kvalue is None:
-			kvalue = 0
-		while kvalue <= 0:  # if k is 0 or negative initialize k with a random value
-			kvalue = random.random()
+		if kvalue is None:  # if k is none
+			kvalue = 10  # set k to 10
 
 		self.setk(int(kvalue))  # set K value to initialize parameters
 		self.vlikelihood = []  # empty likelihood vector
 
+		# Generate theta-like vectors
+		self.theta = []
+		self.ntheta = []
 		for _ in range(self.P):  # Iterate over the number of genes
 			a = [random.random() for _ in range(self.K)]  # xrange to generate big lists (optimization)
 			self.theta.append(a)  # appends to theta a vector of random values
 			self.ntheta.append([0.0] * self.K)  # generate a vector of reals with number of genes size and append it to ntheta
 
 		# Generate pr and npr, 3D matrix with vectors of R components on its cells
+		self.pr = []
+		self.npr = []
 		for i in range(self.K):
 			b = []
 			c = []
@@ -320,57 +323,105 @@ class Model:
 		for triplet, rating in self.links.items():
 			arraylinks.append(triplet)
 
-		for _ in range(test_set_size):
-			# // // replace: whether the sample is or not without replacement
-			triplet = np.random.choice(arraylinks, replace=True)  # take a triplet and delete it
-			arraylinks.remove(triplet)
-
-			# obtain rating for the current triplet. (assuming just one given rating betwwen r=0 or r=1)
-			if self.links[triplet][0]:
-				rating = 0
-			else:
-				rating = 1
-
+		loop = 0
+		while loop < test_set_size:
 			try:
-				self.test_links[triplet][rating] += 1  # link is seen +1 time (probably the maximum will be 1)
-			except KeyError:
-				self.test_links[triplet] = [0] * 2  # Initialize dictionary position
-				self.test_links[triplet][rating] = 1
+				# //// RTFM replace: whether the sample is or not without replacement
+				triplet = np.random.choice(arraylinks)  # take a triplet
 
-			ids = triplet.split("_")
+				ids = triplet.split("_")  # split it
 
-			names = []
-			for identifier in ids:
-				name = self.id_gene[int(identifier)]
-				names.append(name)
-				self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+				# Obtain names for the genes in the triplet.
+				names = []
+				for identifier in ids:
+					if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
+						raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
+					else:
+						self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+						name = self.id_gene[int(identifier)]  # obtain name
+						names.append(name)  # accumulate
 
-			names.sort()  # create identifier string
-			str_names = '_'.join(names)
-			self.nlinks.pop(str_names)  # delete aparition from the gene name dictionary
-			self.links.pop(triplet)  # delete aparition from the gene ID dictionary
+				# obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+				if self.links[triplet][0]:
+					rating = 0
+				else:
+					rating = 1
 
-		print(len(self.test_links))
-		print(self.test_links)
+				try:
+					self.test_links[triplet][rating] += 1  # link is seen +1 time (probably the maximum will be 1)
+				except KeyError:
+					self.test_links[triplet] = [0] * 2  # Initialize dictionary position
+					self.test_links[triplet][rating] = 1  # set 1 for the current rating
+
+				names.sort()  # create identifier name string
+				str_names = '_'.join(names)
+				self.nlinks.pop(str_names)  # delete aparition from the gene name dictionary
+				self.links.pop(triplet)  # delete aparition from the gene ID dictionary
+				arraylinks.remove(triplet)  # delete triplet from the linearized array
+				loop += 1
+			except ValueError as error:
+				print(error)
 
 	# Method do_prediction:
 	#
-	# Returns the probability of interaction between three genes identified by their IDs received as arguments
+	# Description: Returns the probability of interaction between three genes identified by IDs or names.
+	#
+	# Prerequisite: initialize_parameters, get_input, N x make_iteration. Needed to do predicitions.
 	def do_prediction(self, id1, id2, id3):
-		sum = 0
-		for i in range(self.K):
-			for j in range(self.K):
-				for k in range(self.K):
-					sum += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k]
-		return sum
+		def calculate(i1, i2, i3):
+			p = 0
+			for i in range(self.K):
+				for j in range(self.K):
+					for k in range(self.K):
+						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k]
+			return p
 
-	def results(self):
+		if id1 is int and id2 is int and id3 is int:
+			probability = calculate(id1, id2, id3)
+		else:
+			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3])
+
+		return probability
+
+	# Method get_results:
+	#
+	# Description: Creates and returns the table of results.
+	#
+	# Return Parameters: Results are an array of tuples of three elements, containing:
+	# - The three genes involved in the interaction, coming from the tripletes in the test_set (self.test_links)
+	# - Predicted probability of our model of this three genes interacting
+	# - Real interaction [0|1]
+	def get_results(self):
 		result = []
 		for triplet, rating in self.test_links.items():
+			if rating[0]:
+				rating = 0
+			else:
+				rating = 1
 			id1, id2, id3 = triplet.split("_")
 			result.append([triplet, self.do_prediction(id1, id2, id3), rating])
 
 		return result
+
+	# Method get_data:
+	#
+	# Description: Reads data from a file indicated by argument with the to_string format, and copies it to
+	# the different data structures in the model.
+	def get_data(self, file_name="out0.txt"):
+		try:
+			file_ref = codecs.open(file_name, encoding='utf-8', mode="w+")
+			for line in file_ref.readlines():
+				if line.startswith("Number of genes (P):"):
+					line = line.split("\t")
+					self.P = line[1]
+				if line.startswith("Number of groups of genes (K):"):
+					line = line.split("\t")
+					self.K = line[1]
+
+			file_ref.close()
+
+		except IOError:
+			print("I/O error")
 
 	# Method tostring:
 	#
@@ -388,15 +439,18 @@ class Model:
 		def print_matrix(matrix):
 			txt = ''
 			for i in range(self.K):
-				txt += str(i) + "\t"
+				txt += str(i) + "\n\t"
 				for a in range(self.K):
-					txt += str(a) + "\t"
+					txt += str(a) + "\t\t"
+				txt += "\n\t"
+				for b in range(self.K):
+					txt += "0\t1\t"
+				txt += "\n"
 				for j in range(self.K):
 					txt += str(j) + "\t"
 					for k in range(self.K):
 						for r in range(self.R):
-							txt += "{0:.12f}".format(matrix[i][j][k][r]) + "\t"
-						txt += "\t"
+							txt += "{0:.6f}".format(matrix[i][j][k][r]) + "\t"
 					txt += "\n"
 				txt += "\n\n"
 			return txt
@@ -404,7 +458,7 @@ class Model:
 		# Returns a formatted string of a theta/ntheta-like two components vector
 		def print_vector(vector):
 			txt = '\n\t'
-			for a in range(self.P):
+			for a in range(self.K):
 				txt += str(a) + "\t"
 			for p in range(self.P):
 				txt += "\n"
@@ -425,12 +479,12 @@ class Model:
 				txt += '\n'
 			return txt
 
-		text = "Max Likelihood: " + str(self.likelihood) + "\n"
+		text = "Max Likelihood:\t" + str(self.likelihood) + "\n"
 		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
-		text += "\nNumber of genes (P): " + str(self.P) + "\n"
-		text += "Number of links: " + str(len(self.links)) + "\n"
-		text += "Number of groups of genes (K): " + str(self.K) + "\n"
-		text += "Number of possible ratings (R): " + str(self.R) + "\n\n"
+		text += "\nNumber of genes (P):\t" + str(self.P) + "\n"
+		text += "Number of links:\t" + str(len(self.links)) + "\n"
+		text += "Number of groups of genes (K):\t" + str(self.K) + "\n"
+		text += "Number of possible ratings (R):\t" + str(self.R) + "\n\n"
 
 		# String of list of genes
 		text += "LIST OF REGISTERED GENES\n"
@@ -644,6 +698,7 @@ class Model:
 
 		return link and node
 
+
 '''
 	def plot_likelihood(self):
 		i = 0
@@ -730,9 +785,9 @@ if __name__ == "__main__":
 
 	# BY-DEFAULT VALUES
 	except IndexError:
-		iterations = 250
-		samples = 30
-		frequencyCheck = 100
+		iterations = 10
+		samples = 10
+		frequencyCheck = 1
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
 		cutOffValue = -0.08
@@ -746,6 +801,7 @@ if __name__ == "__main__":
 
 	model = Model()
 	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
+	model.fold()
 
 	print("\nStarting algorithm:")
 
@@ -761,22 +817,16 @@ if __name__ == "__main__":
 			model.shift_values()
 			model.n_init()
 
-			# //Debug
-			like = model.compute_likelihood()
-			print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
-			model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
-
-			'''if iteration % frequencyCheck == 0:
+			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
 				print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
-				model.to_file()
+				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
 				if math.fabs((like - like0) / like0) < 0.01:
 					print("\n\t***************************\n\t* Likelihood has converged *\n\t***************************")
 					break
-				like0 = like'''
-
+				like0 = like
 
 		model.to_file("out"+str(sample)+".txt")
-		#result = model.results()
-		#print(result)
+		# result = model.results()
+		# print(result)
 		# model.plot_likelihood()
