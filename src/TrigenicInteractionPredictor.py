@@ -26,7 +26,7 @@ import random
 import sys
 import copy
 import math
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -98,10 +98,7 @@ class Model:
 	# K 				--> number of groups of gene
 	# R 				--> Number of possible ratings [0|1]
 
-	def initialize_parameters(self, kvalue=None):
-
-		if kvalue is None:  # if k is none
-			kvalue = 10  # set k to 10
+	def initialize_parameters(self, kvalue=10):
 
 		self.setk(int(kvalue))  # set K value to initialize parameters
 		self.vlikelihood = []  # empty likelihood vector
@@ -408,15 +405,143 @@ class Model:
 	# Description: Reads data from a file indicated by argument with the to_string format, and copies it to
 	# the different data structures in the model.
 	def get_data(self, file_name="out0.txt"):
+
+		def read_likelihood(file_reference):
+			# Initialize likelihood vector
+			self.likelihood = []
+			while True:
+				sam = str(file_reference.readline())
+				if sam != '\n':
+					sample_str, iterat_str, likelihood_str = sam.split('\t')
+					try:
+						samp, iterat, likelihood = int(sample_str), int(iterat_str), float(likelihood_str)
+						self.likelihood.append([samp, iterat, likelihood])
+					# If we can't parse, skip the line
+					except ValueError:
+						pass
+				else:
+					break
+			return "read_likelihood"
+
+		def read_list_of_genes(file_reference):
+			# Initialize dictionaries
+			self.gene_id = {}
+			self.id_gene = {}
+			self.uniqueg = {}
+			while True:
+				sam = str(file_reference.readline())
+				if sam != '\n':
+					gene_id_str, gene_name_str, numaparitions_str = sam.split('\t')
+					try:
+						gene_id, gene_name, numaparitions = int(gene_id_str), str(gene_name_str), int(numaparitions_str)
+						self.gene_id[gene_name] = gene_id
+						self.id_gene[gene_id] = gene_name
+						self.uniqueg[gene_id] = numaparitions
+					# If we can't parse, skip the line
+					except ValueError:
+						pass
+				else:
+					break
+			return "read_list_of_genes"
+
+		def read_links(file_reference):
+			# Initialize dictionaries
+			self.links = {}
+			self.nlinks = {}
+			while True:
+
+				sam = str(file_reference.readline())
+				if sam != '\n':
+					# HARDCODED: Assuming R = 2
+					gene_ids_str, aparitions1_str, aparitions0_str = sam.split('\t')
+					try:
+						gene_ids, aparitions1, aparitions0 = str(gene_ids_str), int(aparitions1_str), int(aparitions0_str)
+						# Translate step
+						id1, id2, id3 = gene_ids.split('\t')
+						list_names = self.id_gene[id1], self.id_gene[id2], self.id_gene[id3],
+						gene_names = '_'.join(list_names)
+
+						try:
+							self.nlinks[gene_names][0] = aparitions0
+							self.nlinks[gene_names][1] = aparitions1
+							self.links[gene_ids][0] = aparitions0
+							self.links[gene_ids][1] = aparitions1
+						except KeyError:
+							self.links[gene_ids] = [0] * 2
+							self.links[gene_ids][0] = aparitions0
+							self.links[gene_ids][1] = aparitions1
+							self.nlinks[gene_names] = [0] * 2
+							self.nlinks[gene_names][0] = aparitions0
+							self.nlinks[gene_names][1] = aparitions1
+					# If we can't parse, skip the line
+					except ValueError:
+						pass
+				else:
+					break
+			return "read_list_of_genes"
+
+		def read_matrix(file_reference, matrix):
+			for i in range(self.K):
+				for _ in range(3):
+					file_reference.readline()  # Skip three lines
+				for j in range(self.K):
+					sam = file_reference.readline()  # Get line
+					list_data = sam.split('\t')  # Split line
+					j = list_data.pop(0)
+					for k in range(self.K):
+						for r in range(self.R):
+							matrix[i][j][k][r] = list_data.pop(0)
+				for _ in range(2):
+					file_reference.readline()  # skip two lines at the end
+			return "read_list_of_genes"
+
+		def read_vector(file_reference, vector_type):
+			vector = []
+			for _ in range(2):
+				file_reference.readline()  # Skip the two first lines
+			while True:
+				data = file_reference.readline()
+				if data != '\n':
+					list_data = data.split('\t')
+					id_gene = vector[list_data.pop(0)]
+					vector[id_gene] = [] * self.K
+					for k in range(self.K):
+						vector[id_gene][k] = list_data.pop(0)
+				else:
+					break
+			if vector_type == "theta":
+				self.theta = vector
+			else:
+				self.ntheta = vector
+
+		def read_rating(file_reference):
+			self.R = int(file_reference.readline())
+
+		def read_number_of_groups(file_reference):
+			self.K = int(file_reference.readline())
+
+		def switcher_method(argument):
+			switcher = {
+				"Number of groups of genes (K):": read_number_of_groups,
+				"Number of possible ratings (R):": read_rating,
+				"Likelihood vector:": read_likelihood,
+				"LIST OF REGISTERED GENES": read_list_of_genes,
+				"LIST OF LINKS BETWEEN GENE IDS": read_links,
+				"MATRIX OF PROBABILITIES PR": lambda x: read_matrix(x, self.pr),
+				"MATRIX OF PROBABILITIES NPR": lambda x: read_matrix(x, self.pr),
+				"THETA VECTOR": lambda x: read_vector(x, self.theta),
+				"NTHETA VECTOR": lambda x: read_vector(x, self.ntheta),
+			}
+			# Get the function from switcher dictionary
+			return switcher.get(argument, lambda: argument+"is invalid line")
+
+		self.initialize_parameters()
 		try:
 			file_ref = codecs.open(file_name, encoding='utf-8', mode="w+")
 			for line in file_ref.readlines():
-				if line.startswith("Number of genes (P):"):
-					line = line.split("\t")
-					self.P = line[1]
-				if line.startswith("Number of groups of genes (K):"):
-					line = line.split("\t")
-					self.K = line[1]
+				lambda_function = switcher_method(line)
+				# Execute the function
+				lambda_function(file_ref)
 
 			file_ref.close()
 
@@ -465,6 +590,7 @@ class Model:
 				txt += str(p) + "\t"
 				for k in range(self.K):
 					txt += "{0:.12f}".format(vector[p][k]) + "\t"
+			txt += '\n'
 			return txt
 
 		def print_links(links):
@@ -480,25 +606,25 @@ class Model:
 			return txt
 
 		text = "Max Likelihood:\t" + str(self.likelihood) + "\n"
-		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
-		text += "\nNumber of genes (P):\t" + str(self.P) + "\n"
+		text += "Number of genes (P):\t" + str(self.P) + "\n"
 		text += "Number of links:\t" + str(len(self.links)) + "\n"
-		text += "Number of groups of genes (K):\t" + str(self.K) + "\n"
-		text += "Number of possible ratings (R):\t" + str(self.R) + "\n\n"
+		text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
+		text += "Number of possible ratings (R):\n" + str(self.R) + "\n\n"
+		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
 
 		# String of list of genes
-		text += "LIST OF REGISTERED GENES\n"
+		text += "\nLIST OF REGISTERED GENES\n"
 		text += "Gene_ID\tGene_name\tnumAparitions\n"
 		for gid in self.id_gene:
 			text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
 
 		# String of list of links by ID
-		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
+		text += "\nLIST OF LINKS BETWEEN GENE IDS\n"
 		text += "gid1_gid2_gid3"
 		text += print_links(self.links)
 
 		# String of list of links by gene name
-		text += "\nLIST OF LINKS BETWEEN GENES ID\n"
+		text += "\nLIST OF LINKS BETWEEN GENE NAMES\n"
 		text += "n1_n2_n3"
 		text += print_links(self.nlinks)
 
@@ -510,10 +636,10 @@ class Model:
 		text += print_matrix(self.npr)
 
 		# Fpr both theta/ntheta vector
-		text += "\n\nTHETA VECTOR\n"
+		text += "\nTHETA VECTOR\n"
 		text += print_vector(self.theta)
 
-		text += "\n\nNTHETA VECTOR\n"
+		text += "\nNTHETA VECTOR\n"
 		text += print_vector(self.ntheta)
 
 		return text
@@ -698,8 +824,6 @@ class Model:
 
 		return link and node
 
-
-'''
 	def plot_likelihood(self):
 		i = 0
 		print(self.vlikelihood[0][0])
@@ -720,7 +844,6 @@ class Model:
 		plt.plot(data_x, data_y)
 		plt.title('likelihood over iterations')
 		plt.show()
-'''
 
 # Function compareS1withS2:
 #
@@ -785,8 +908,8 @@ if __name__ == "__main__":
 
 	# BY-DEFAULT VALUES
 	except IndexError:
-		iterations = 10
-		samples = 10
+		iterations = 1000
+		samples = 2
 		frequencyCheck = 1
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
@@ -803,14 +926,14 @@ if __name__ == "__main__":
 	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
 	model.fold()
 
-	print("\nStarting algorithm:")
+	print("\nStarting algorithm...")
 
 	for sample in range(int(samples)):
-		print("\nSample "+str(1 + sample)+":")
+		print("Sample "+str(1 + sample)+":")
 		model.initialize_parameters(argk)
-		print("\nParameters have been initialized")
+		print("Parameters have been initialized")
 		like0 = model.compute_likelihood()
-		print("\nInitial likelihood is: "+str(like0))
+		print("· Likelihood 0 is "+str(like0))
 
 		for iteration in range(iterations):
 			model.make_iteration()
@@ -819,14 +942,12 @@ if __name__ == "__main__":
 
 			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
-				print("\t· Likelihood from iteration " + str(iteration + 1) + " is " + str(like))
+				print("· Likelihood " + str(iteration + 1) + " is " + str(like))
 				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
-				if math.fabs((like - like0) / like0) < 0.01:
-					print("\n\t***************************\n\t* Likelihood has converged *\n\t***************************")
+				if math.fabs((like - like0) / like0) < 0.001:
+					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
+					model.plot_likelihood()
+					model.to_file("out" + str(sample) + ".csv")
 					break
 				like0 = like
-
-		model.to_file("out"+str(sample)+".txt")
-		# result = model.results()
-		# print(result)
-		# model.plot_likelihood()
+		model.to_file("out" + str(sample) + ".csv")
