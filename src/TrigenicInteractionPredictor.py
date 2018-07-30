@@ -60,6 +60,9 @@ class Model:
 		# iterations
 		self.test_links = {}
 
+		# Contains the real and predicted probabilities for every triplete in the test_links
+		self.results = []
+
 		# Relates the id gene with its number of interactions
 		self.uniqueg = {}
 
@@ -323,7 +326,6 @@ class Model:
 		loop = 0
 		while loop < test_set_size:
 			try:
-				# //// RTFM replace: whether the sample is or not without replacement
 				triplet = np.random.choice(arraylinks)  # take a triplet
 
 				ids = triplet.split("_")  # split it
@@ -389,16 +391,84 @@ class Model:
 	# - Predicted probability of our model of this three genes interacting
 	# - Real interaction [0|1]
 	def get_results(self):
-		result = []
+		self.results = []
 		for triplet, rating in self.test_links.items():
 			if rating[0]:
 				rating = 0
 			else:
 				rating = 1
 			id1, id2, id3 = triplet.split("_")
-			result.append([triplet, self.do_prediction(id1, id2, id3), rating])
+			self.results.append([self.do_prediction(id1, id2, id3), triplet, rating])
+		# Sort results from less to higher predicted probability
+		self.results.sort()
+		self.results.reverse()
 
-		return result
+	# Method calcule_metrix:
+	#
+	# Description: Gets the cut_value taken as the threshold for choosing a sample as positive or negative.
+	# I used a "rating" approach in which you compute the fraction of positives that are in your train_set.
+	# Then you multiply this fraction by the number of samples in the test_set. You will obtain the number of predicted
+	# positive in the train_set, assuming that both sets (train_set and test_set) are homogeneous distributed.
+	#
+	# We are going to sort our train_set by the prediction value, keeping higher prediction values on the top.
+	# We will keep the first "number of predicted positives" values as positives, and the others as negatives.
+	# We will use the predicted probability of interaction from the last element predicted as positiven as the cut_value.
+	# This value will decide if a sample is positive (>= cut_value) or negative (< cut_value).
+
+	def calcule_metrics(self):
+		# calcule cut value using "ranking" method
+		counter = 0
+		cut_value = 0
+		for triplet, rating in self.links.items():
+			if rating[1] == 1:
+				counter += 1
+		positives_fraction = counter / len(self.links)  # Obtain the fraction of positives in our training set
+		# Obtain the number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
+		positives_number = int(positives_fraction * len(self.test_links))
+		counter = 0
+		for data in self.test_links:
+			if positives_number == counter:
+				cut_value = data[0]
+				break
+			counter += 1
+
+		# Calcule AUC metric
+		positives = []
+		negatives = []
+		counter = 0
+		for data in self.test_links:
+			if data[2]:
+				positives.append(data)
+			else:
+				negatives.append(data)
+
+		for positive in positives:
+			for negative in negatives:
+				if positive[0] > negative[0]:
+					counter += 1
+		auc = counter / (len(positives) * len(negatives))
+
+		# calcule metrics
+		true_positives, false_positives, false_negatives, true_negatives = 0, 0, 0, 0
+		for data in self.test_links:
+			predicted = data[0]
+			real = data[2]
+			if predicted >= cut_value:
+				if real:
+					true_positives += 1
+				else:
+					false_positives += 1
+			else:
+				if real:
+					false_negatives += 1
+				else:
+					true_negatives += 1
+
+		precision = true_positives / (true_positives + false_positives)
+		recall = true_positives / (true_positives + false_negatives)
+		fallout = false_positives / (false_positives + true_negatives)
+
+		return [precision, recall, fallout, auc]
 
 	# Method get_data:
 	#
@@ -551,6 +621,7 @@ class Model:
 	# Method tostring:
 	#
 	# Description: Returns a CSV-like (using one tab as separator between fields) format string with data from the model
+	# object.
 	def to_string(self):
 
 		# Prints the likelihood vector in csv format splitted by tabs (\t)
@@ -824,6 +895,9 @@ class Model:
 
 		return link and node
 
+	# Method plot_likelihood:
+	#
+	# Description: Plots the likelihood.
 	def plot_likelihood(self):
 		i = 0
 		print(self.vlikelihood[0][0])
@@ -909,7 +983,7 @@ if __name__ == "__main__":
 	# BY-DEFAULT VALUES
 	except IndexError:
 		iterations = 1000
-		samples = 2
+		samples = 1
 		frequencyCheck = 1
 		filename = "Data_S1.csv"
 		interactionType = "trigenic"
