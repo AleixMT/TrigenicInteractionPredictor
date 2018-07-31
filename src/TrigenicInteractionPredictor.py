@@ -102,8 +102,11 @@ class Model:
 	# R 				--> Number of possible ratings [0|1]
 
 	def initialize_parameters(self, kvalue=10):
+		try:
+			self.K = int(kvalue)  # set K value to initialize parameters
+		except ValueError:  # if we cant parse
+			self.K = 10
 
-		self.setk(int(kvalue))  # set K value to initialize parameters
 		self.vlikelihood = []  # empty likelihood vector
 
 		# Generate theta-like vectors
@@ -359,7 +362,7 @@ class Model:
 				arraylinks.remove(triplet)  # delete triplet from the linearized array
 				loop += 1
 			except ValueError as error:
-				print(error)
+				pass
 
 	# Method do_prediction:
 	#
@@ -369,28 +372,30 @@ class Model:
 	def do_prediction(self, id1, id2, id3):
 		def calculate(i1, i2, i3):
 			p = 0
+
 			for i in range(self.K):
 				for j in range(self.K):
 					for k in range(self.K):
-						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k]
+						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k][1]  # We want positives ([1])
 			return p
 
-		if id1 is int and id2 is int and id3 is int:
-			probability = calculate(id1, id2, id3)
-		else:
+		try:
+			id1_int, id2_int, id3_int = int(id1), int(id2), int(id3)
+			probability = calculate(id1_int, id2_int, id3_int)
+		except ValueError:
 			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3])
 
 		return probability
 
 	# Method get_results:
 	#
-	# Description: Creates and returns the table of results.
+	# Description: Creates and returns the table of results from test set.
 	#
 	# Return Parameters: Results are an array of tuples of three elements, containing:
 	# - The three genes involved in the interaction, coming from the tripletes in the test_set (self.test_links)
 	# - Predicted probability of our model of this three genes interacting
 	# - Real interaction [0|1]
-	def get_results(self):
+	def calcule_test_set_results(self):
 		self.results = []
 		for triplet, rating in self.test_links.items():
 			if rating[0]:
@@ -426,7 +431,7 @@ class Model:
 		# Obtain the number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
 		positives_number = int(positives_fraction * len(self.test_links))
 		counter = 0
-		for data in self.test_links:
+		for data in self.results:
 			if positives_number == counter:
 				cut_value = data[0]
 				break
@@ -436,7 +441,7 @@ class Model:
 		positives = []
 		negatives = []
 		counter = 0
-		for data in self.test_links:
+		for data in self.results:
 			if data[2]:
 				positives.append(data)
 			else:
@@ -450,7 +455,7 @@ class Model:
 
 		# calcule metrics
 		true_positives, false_positives, false_negatives, true_negatives = 0, 0, 0, 0
-		for data in self.test_links:
+		for data in self.results:
 			predicted = data[0]
 			real = data[2]
 			if predicted >= cut_value:
@@ -676,12 +681,24 @@ class Model:
 				txt += '\n'
 			return txt
 
+		def print_tuples(tuples):
+			txt = ''
+			txt += '\nPredicted Interaction\tID of genes\tReal Interaction\n'
+			for tupla in tuples:
+				txt += str(tupla[0])+'\t'+str(tupla[1])+'\t'+str(tupla[2])+'\n'
+			return txt
+
 		text = "Max Likelihood:\t" + str(self.likelihood) + "\n"
 		text += "Number of genes (P):\t" + str(self.P) + "\n"
 		text += "Number of links:\t" + str(len(self.links)) + "\n"
 		text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
 		text += "Number of possible ratings (R):\n" + str(self.R) + "\n\n"
 		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
+		self.calcule_test_set_results()  # Implicit call to calcule results
+		text += "\nTest set:" + str(print_tuples(self.results))
+		metrics = self.calcule_metrics()  # Implicit call to calcule metrics
+		text += "\nMetrics:\nPrecision\tRecall\tFallout\tAUC\n"
+		text += str(metrics[0]) + "\t" + str(metrics[1]) + "\t" + str(metrics[2]) + "\t" + str(metrics[3])
 
 		# String of list of genes
 		text += "\nLIST OF REGISTERED GENES\n"
@@ -773,12 +790,6 @@ class Model:
 				diff.append(gene)
 		return diff
 
-	# Method setK(int):
-	#
-	# Description: Sets the K value in model (number of user groups)
-	def setk(self, k_value):
-		self.K = k_value
-
 	# Method computeLikelihood:
 	#
 	# Description: Computes likelihood of the current data stored in the object.
@@ -801,27 +812,6 @@ class Model:
 				log_l += rating_vector[r] * math.log(d[r])
 		self.likelihood = log_l
 		return log_l
-			
-	# Method shiftValues:
-	#
-	# Description: Copies values from n* data structures to the current structures
-	def shift_values(self):
-		self.theta = copy.copy(self.ntheta)
-		for i in range(self.K):
-			for j in range(self.K):
-				for k in range(self.K):
-					self.pr[i][j][k] = self.npr[i][j][k]
-
-	# Method nInit:
-	#
-	# Description: Reinitialization of n* data structures
-	def n_init(self):
-		for i in range(self.P):
-			self.ntheta[i] = [0.] * self.K
-		for i in range(self.K):
-			for j in range(self.K):
-				for k in range(self.K):
-					self.npr[i][j][k] = [0.] * self.R
 
 	# Method makeIteration:
 	#
@@ -871,6 +861,20 @@ class Model:
 					for r in range(self.R):
 						self.npr[i][j][k][r] /= d
 
+		# Copies values from n* data structures to the current structures
+		self.theta = copy.copy(self.ntheta)
+		for i in range(self.K):
+			for j in range(self.K):
+				for k in range(self.K):
+					self.pr[i][j][k] = self.npr[i][j][k]
+
+		# Reinitialization of n * data structures
+		for i in range(self.P):
+			self.ntheta[i] = [0.] * self.K
+		for i in range(self.K):
+			for j in range(self.K):
+				for k in range(self.K):
+					self.npr[i][j][k] = [0.] * self.R
 	# Method compareDataset(model):
 	#
 	# Description: Given another object model, data of links and genes is comparated separately. This information will
@@ -991,9 +995,10 @@ if __name__ == "__main__":
 		argk = 10
 	
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
-	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations"
+	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations."
 	msg += "\nData is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
-	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)
+	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)+"."
+	msg += "\nLikelihood will be calculated every "+str(frequencyCheck)+" iterations."
 	print(msg)
 
 	model = Model()
@@ -1008,20 +1013,21 @@ if __name__ == "__main__":
 		print("Parameters have been initialized")
 		like0 = model.compute_likelihood()
 		print("· Likelihood 0 is "+str(like0))
+		model.vlikelihood.append([sample, 0, like0])  # append result into the global vector of likelihoods
 
 		for iteration in range(iterations):
 			model.make_iteration()
-			model.shift_values()
-			model.n_init()
 
 			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
 				print("· Likelihood " + str(iteration + 1) + " is " + str(like))
-				model.vlikelihood.append([sample, iteration, like])  # append result into the global vector of likelihoods
-				if math.fabs((like - like0) / like0) < 0.001:
+				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
+				if math.fabs((like - like0) / like0) < 0.01:
 					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
-					model.plot_likelihood()
-					model.to_file("out" + str(sample) + ".csv")
+					model.to_file("outprev" + str(sample) + ".csv") # // debug
+					model.get_data("out1.txt")
+					model.to_file("late"+str(sample)+".csv") # // debug
 					break
 				like0 = like
-		model.to_file("out" + str(sample) + ".csv")
+			# model.get_data("out2.txt")  # // debug
+		#model.to_file("out" + str(sample) + ".csv")
