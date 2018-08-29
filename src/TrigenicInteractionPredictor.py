@@ -29,12 +29,12 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+# Contains all methods and data structures of the algorithm.
 class Model:
 
 	# Constructor:
 	#
-	# Description: Initializes data structures of algorithm.
+	# Description: Initializes empty data structures of algorithm.
 
 	def __init__(self):
 		# Vectors of probability, that relates the probability of a gene belonging to a determinate group
@@ -50,9 +50,9 @@ class Model:
 		self.npr = []
 
 		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 with the format "id1_id2_id3" in links,
-		# and "namegene1_namegene2_namegene3" in nlinks.
+		# and "namegene1_namegene2_namegene3" in nlinks. In both cases, ids and names are sorted alphabetically.
 		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
-		#  and gene3 with rating r
+		# and gene3 with rating r.
 		self.nlinks = {}
 		self.links = {}
 
@@ -92,7 +92,7 @@ class Model:
 	#
 	# Arguments:
 	# 1.- K (number of group of genes) can be given using this method directly. Calling the method
-	# without arguments will make K a random positive number
+	# without arguments will make K = 10.
 	#
 	# Return parameters:
 	# ntheta / theta 	--> vector of possibilities of a gene belonging to a determinate group of genes
@@ -117,7 +117,7 @@ class Model:
 			self.theta.append(a)  # appends to theta a vector of random values
 			self.ntheta.append([0.0] * self.K)  # generate a vector of reals with number of genes size and append it to ntheta
 
-		# Generate pr and npr, 3D matrix with vectors of R components on its cells
+		# Generate pr and npr, 3D matrix (relating three genes) with vectors of R components on its cells
 		self.pr = []
 		self.npr = []
 		for i in range(self.K):
@@ -135,25 +135,26 @@ class Model:
 			self.pr.append(b)  # random values for pr
 			self.npr.append(c)  # 0s for npr
 
-		# Normalization for theta vector of genes:
+		# Normalization for theta vectors of genes: The sum of probabilities of a gene belonging to a certain
+		# group will be equal to 1.
 		for i in range(self.P):  # Iterate over number of genes
 			sumtheta = 0.  # sum of possibilities of theta vector for gene i
 			for k in range(self.K):  # iterate over number of groups of genes
 				sumtheta += self.theta[i][k]  # and get the sum of prob. of vector theta for gene 1
 			for k in range(self.K):  # normalization for all components,
 				try:
-					self.theta[i][k] /= sumtheta
+					self.theta[i][k] /= sumtheta  # if we divide by 0...
 				except ZeroDivisionError:
-					self.theta[i][k] /= (sumtheta + self.eps)  # adding an small value to avoid dividing by zero
+					self.theta[i][k] /= (sumtheta + self.eps)  # add a small value to avoid dividing by zero
 
 		# Normalization of the vector probability for each gene having interaction with two other genes
 		for i in range(self.K):
 			for j in range(self.K):
 				for k in range(self.K):
-					sumpr = 0.  # Acumulator of possibilities for all ratings
+					sumpr = 0.  # Acumulator of possibilities for all ratings given three certain groups of genes.
 					for r in range(self.R):
 						sumpr += self.pr[i][j][k][r]
-					for r in range(self.R):  # sum of prob of a user from group K giving rate R to a item from group L is 1
+					for r in range(self.R):  # The sum of probabilities of three given groups of genes with all ratings will be 1.
 						try:
 							self.pr[i][j][k][r] /= sumpr
 						except ZeroDivisionError:
@@ -162,25 +163,26 @@ class Model:
 	# Method getInput:
 	#
 	# Description: Reads data from file in the same folder as this script, selects type of interaction and sets the
-	# rating of the interaction.
-	# All genes will be selected with P-value < 0.05.
-	# P is also initialized with the number of genes.
+	# rating of the interaction. All genes will be selected with P-value < 0.05. self.P is also initialized with the
+	# number of genes.
 	#
 	# Arguments:
 	# 1.- filename: File to read will be selected with this parameters
 	# 2.- selectedInteractionType: [trigenic|digenic|*] Type of interaction to select. "*" to select all.
+	# WARNING: digenic interactions can be read but methods are not implemented for this type of interaction.
 	# 3.- cutoffValue: selects the interaction as positive [1] with an adjusted genetic interaction score under
 	# this value or as negative [0] if not. Use sys.float_info.max or sys.float_info.min in this parameter for assuming
 	# all positive or negative interactions.
-	# · digenic interaction cut-off in the original article (p < 0.05, |e| > 0.08)
-	# · trigenic interactions cut-off in the original article (p < 0.05, t < -0.08)
-	# 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
-	# 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset
+	# 	· digenic interaction cut-off in the original article (p < 0.05, |e| > 0.08)
+	# 	· trigenic interactions cut-off in the original article (p < 0.05, t < -0.08)
+	# 4.- discard: [0|1] Choose whether add assays that are under the cutoffValue or discard them. By-default 0.
+	# 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset. By-default is 0
+	# meaning no limit.
 	# Return parameters:
 	# Fills with data the next variables: links, nlinks, id_gene, gene_id, P.
 	#
 	# File Format:
-	# RAW Dataset S1
+	# RAW Dataset S1. Columns:
 	# 1.- Query strain ID
 	# 2.- Query allele name
 	# 3.- Array strain ID
@@ -192,7 +194,7 @@ class Model:
 	# 9.- Query single/double mutant fitness
 	# 10.- Array single mutant fitness
 	# 11.- Combined mutant fitness
-	# 12.- Combined mutant fitness standard deviationç
+	# 12.- Combined mutant fitness standard deviation
 	#
 	# Treated Dataset S2
 	# 1.- Query strain ID
@@ -246,10 +248,10 @@ class Model:
 					if float(fields[5]) < cutoffvalue:
 						r = 1
 					else:
-						if discard:
+						if discard:  # if discard is activated we won't read negative interactions
 							continue
 						else:
-							r = 0
+							r = 0  # else, assign a 0 to the interaction.
 
 					# create list with the three implicated alleles
 					gene_triplet = fields[1].split('+')
@@ -261,7 +263,7 @@ class Model:
 						if gene not in self.gene_id.keys():  # gene hasnt been seen by algorithm
 							self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
 							self.id_gene[gid] = gene  # assign a new gene to this gid
-							self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
+							self.uniqueg[n1] = 0  # when gene identified by n1 is the first time found
 							gid += 1  # update index gid
 						else:  # gene is already registered
 							n1 = self.gene_id[gene]  # get gid from gene, already registered
@@ -272,11 +274,11 @@ class Model:
 						# save ID from gene
 						id_gene_triplet.append(str(n1))
 
-					# Sort protoidentifier for unique key
+					# Sort protoidentifier alphabetically for unique key for a concrete triplete of genes.
 					gene_triplet.sort()
 					id_gene_triplet.sort()
 
-					# Concatenate id and genes to create the key string
+					# Concatenate id and genes with "_" in betweeen to create the key string
 					str_name_gene_triplet = '_'.join(gene_triplet)
 					str_gene_triplet = '_'.join(id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
 
@@ -284,10 +286,10 @@ class Model:
 						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
 					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
-						self.nlinks[str_name_gene_triplet] = [0] * 2
-						self.nlinks[str_name_gene_triplet][r] += 1
-						self.links[str_gene_triplet] = [0] * 2
-						self.links[str_gene_triplet][r] += 1
+						self.nlinks[str_name_gene_triplet] = [0] * self.R  # Create a vector of R positions
+						self.nlinks[str_name_gene_triplet][r] = 1  # This genes are found for the first time
+						self.links[str_gene_triplet] = [0] * self.R  # same here using gid
+						self.links[str_gene_triplet][r] = 1
 
 					# limit number of read lines
 					counter += 1
@@ -307,37 +309,40 @@ class Model:
 	#
 	# Description: "Folds" the data in the object model.
 	# We implemented this method instead of extending the get_input method because this gives us the possibility to
-	# interact with data when we know that all samples in the object are the truly selected. In the get_input method
-	# we have different criteria to select samples, so probably all samples from file won't be selected.
+	# interact with data with different criteria, allowing us more freedom at the time of implementing fold() method.
+	# Furthermore, get_input is an enough complex method.
 	#
-	# To do the folding we will calculate the number of samples that we have in our object model, and the we will get the
-	# 20 % of the samples randomly. The samples chosen for the test set will be deleted and data structures from train_set
-	# will be modified accordingly.
+	# To do the folding we will calculate the number of samples that we have in our object model, and then we will get the
+	# 20 % of the samples randomly. The samples randomly chosen for the test set will be deleted and/or modified 
+	# accordingly from the train_set.
 	#
 	# Return Parameters:
 	# - Fills the dictionary self.test_links with the 20 % of the links from self.links
 	# - Deletes this 20 % of links from the original dictionary.
 	# - Modifies the other data structures for coherence.
 	def fold(self):
-		test_set_size = int(len(self.links) / 5)
+		test_set_size = int(len(self.links) / 5)  # Obtain the number of samples that we need to take.
 
-		# linealization of dictionary to use choice method
+		# linealization of dictionary to use choice method (we need a list-like data structure)
 		arraylinks = []
 		for triplet, rating in self.links.items():
-			arraylinks.append(triplet)
+			arraylinks.append(triplet)  # append the triplete to the dictionary
 
-		loop = 0
+		loop = 0  # counter
 		while loop < test_set_size:
 			try:
-				triplet = np.random.choice(arraylinks)  # take a triplet
+				triplet = np.random.choice(arraylinks)  # take a triplet randomly
 
 				ids = triplet.split("_")  # split it
 
 				# Obtain names for the genes in the triplet.
 				names = []
 				for identifier in ids:
+					#** We use this conditional to avoid genes with just one aparition. This is mathematically incorrect,
+					# but does the trick to avoid dividing by 0.
 					if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
 						raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
+					#**
 					else:
 						self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
 						name = self.id_gene[int(identifier)]  # obtain name
@@ -350,26 +355,28 @@ class Model:
 					rating = 1
 
 				try:
-					self.test_links[triplet][rating] += 1  # link is seen +1 time (probably the maximum will be 1)
+					self.test_links[triplet][rating] += 1  # link is seen +1 time (In our case the maximum will be 1)
 				except KeyError:
-					self.test_links[triplet] = [0] * 2  # Initialize dictionary position
-					self.test_links[triplet][rating] = 1  # set 1 for the current rating
+					self.test_links[triplet] = [0] * self.R  # Initialize dictionary position
+					self.test_links[triplet][rating] = 1  # set 1 for the read rating
 
-				names.sort()  # create identifier name string
+				names.sort()  # create unique identifier name string
 				str_names = '_'.join(names)
 				self.nlinks.pop(str_names)  # delete aparition from the gene name dictionary
 				self.links.pop(triplet)  # delete aparition from the gene ID dictionary
 				arraylinks.remove(triplet)  # delete triplet from the linearized array
 				loop += 1
-			except ValueError as error:
+			except ValueError:
 				pass
 
 	# Method do_prediction:
 	#
 	# Description: Returns the probability of interaction between three genes identified by IDs or names.
-	#
-	# Prerequisite: initialize_parameters, get_input, N x make_iteration. Needed to do predicitions.
+	# Arguments: three GIDs or three gene names (decorator pattern).
+	# Prerequisite: initialize_parameters, get_input, N x make_iteration. Needed to do predictions.
 	def do_prediction(self, id1, id2, id3):
+
+		# receives three gids and returns the probability of interaction with the given model
 		def calculate(i1, i2, i3):
 			p = 0
 
@@ -380,10 +387,10 @@ class Model:
 			return p
 
 		try:
-			id1_int, id2_int, id3_int = int(id1), int(id2), int(id3)
-			probability = calculate(id1_int, id2_int, id3_int)
-		except ValueError:
-			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3])
+			id1_int, id2_int, id3_int = int(id1), int(id2), int(id3)  # try to parse
+			probability = calculate(id1_int, id2_int, id3_int)  # calculate probability if everything goes OK
+		except ValueError:  # if can't parse to integer that means we are using names, so translate them first.
+			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3]) 
 
 		return probability
 
@@ -410,10 +417,13 @@ class Model:
 
 	# Method calcule_metrix:
 	#
-	# Description: Gets the cut_value taken as the threshold for choosing a sample as positive or negative.
+	# Description: 
+	# Applies AUC approach to obtain metrix.
+	#
+	# First, calcule the cut_value taken as the threshold for choosing a sample as positive or negative.
 	# I used a "rating" approach in which you compute the fraction of positives that are in your train_set.
-	# Then you multiply this fraction by the number of samples in the test_set. You will obtain the number of predicted
-	# positive in the train_set, assuming that both sets (train_set and test_set) are homogeneous distributed.
+	# Then you multiply this fraction by the number of samples in the test_set. You will obtain the "number of predicted
+	# positives" in the train_set, assuming that both sets (train_set and test_set) are homogeneous distributed.
 	#
 	# We are going to sort our train_set by the prediction value, keeping higher prediction values on the top.
 	# We will keep the first "number of predicted positives" values as positives, and the others as negatives.
@@ -430,11 +440,14 @@ class Model:
 		positives_fraction = counter / len(self.links)  # Obtain the fraction of positives in our training set
 		# Obtain the number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
 		positives_number = int(positives_fraction * len(self.test_links))
+		
+		# obtain the cut_value
 		counter = 0
 		for data in self.results:
-			if positives_number == counter:
+			if positives_number == counter:  # if we have read "positive_number" of positives, next one is the first
+			# negative, keeping it as the cut_value. We will use this value to decide if a sample is positive or negative
 				cut_value = data[0]
-				break
+				break  # and we exit, we don't need to read all the list
 			counter += 1
 
 		# Calcule AUC metric
@@ -442,16 +455,17 @@ class Model:
 		negatives = []
 		counter = 0
 		for data in self.results:
-			if data[2]:
+			if data[2]:  # depending on the real value we save data in one or another place.
 				positives.append(data)
 			else:
 				negatives.append(data)
 
+		# Compare all negatives with all positives
 		for positive in positives:
 			for negative in negatives:
-				if positive[0] > negative[0]:
+				if positive[0] > negative[0]:  # every time a positive has higher probability that a negative 
 					counter += 1
-		auc = counter / (len(positives) * len(negatives))
+		auc = counter / (len(positives) * len(negatives))  # 1 in a perfect distribution
 
 		# calcule metrics
 		true_positives, false_positives, false_negatives, true_negatives = 0, 0, 0, 0
@@ -469,6 +483,7 @@ class Model:
 				else:
 					true_negatives += 1
 
+		# Common metrics
 		precision = true_positives / (true_positives + false_positives)
 		recall = true_positives / (true_positives + false_negatives)
 		fallout = false_positives / (false_positives + true_negatives)
@@ -1024,10 +1039,9 @@ if __name__ == "__main__":
 				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
 				if math.fabs((like - like0) / like0) < 0.01:
 					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
-					model.to_file("outprev" + str(sample) + ".csv") # // debug
-					model.get_data("out1.txt")
-					model.to_file("late"+str(sample)+".csv") # // debug
+					# model.to_file("outprev" + str(sample) + ".csv") # // debug
+					# model.get_data("out1.txt")
+					# model.to_file("late"+str(sample)+".csv") # // debug
 					break
 				like0 = like
-			# model.get_data("out2.txt")  # // debug
-		#model.to_file("out" + str(sample) + ".csv")
+		model.to_file("out" + str(sample) + ".csv")
