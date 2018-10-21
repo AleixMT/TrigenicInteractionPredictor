@@ -155,7 +155,7 @@ class Model:
 					sumpr = 0.  # Acumulator of possibilities for all ratings given three certain groups of genes.
 					for r in range(self.R):
 						sumpr += self.pr[i][j][k][r]
-					for r in range(self.R):  # The sum of probabilities of three given groups of genes with all ratings will be 1.
+					for r in range(self.R):  # Sum of probabilities of the ratings of three groups of genes will be 1.
 						try:
 							self.pr[i][j][k][r] /= sumpr
 						except ZeroDivisionError:
@@ -212,8 +212,9 @@ class Model:
 			gid = 0
 			counter = 0
 
-			if selectedinteractiontype != 'trigenic' and selectedinteractiontype != 'digenic' and selectedinteractiontype != '*':
-				raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or *")
+			if selectedinteractiontype != 'trigenic' and selectedinteractiontype != 'digenic':
+				if selectedinteractiontype != 'all':
+					raise ValueError("argument 2 selectedInteractionType must be trigenic, digenic or all")
 
 			with codecs.open(argfilename, encoding='utf-8', mode='r') as fileref:
 
@@ -284,7 +285,8 @@ class Model:
 					str_gene_triplet = '_'.join(id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
 
 					try:
-						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+						self.links[str_gene_triplet][
+							r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
 						self.nlinks[str_name_gene_triplet][r] += 1
 					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
 						self.nlinks[str_name_gene_triplet] = [0] * self.R  # Create a vector of R positions
@@ -297,8 +299,8 @@ class Model:
 					if counter == numlines:
 						break
 
-				self.P = len(self.id_gene)  # get number of users
-				fileref.close()
+			self.P = len(self.id_gene)  # get number of users
+			fileref.close()
 
 		except ValueError as error:
 			print(error)
@@ -313,14 +315,14 @@ class Model:
 	# interact with data with different criteria, allowing us more freedom at the time of implementing fold() method.
 	# Furthermore, get_input is an enough complex method.
 	#
-	# To do the folding we will calculate the number of samples that we have in our object model, and then we will get the
-	# 20 % of the samples randomly. The samples randomly chosen for the test set will be deleted and/or modified 
+	# To do the folding we will calculate the number of samples that we have in our object model, and then we will get
+	# the 20 % of the samples randomly. The samples randomly chosen for the test set will be deleted and/or modified
 	# accordingly from the train_set.
-	#
 	# Return Parameters:
 	# - Fills the dictionary self.test_links with the 20 % of the links from self.links
 	# - Deletes this 20 % of links from the original dictionary.
 	# - Modifies the other data structures for coherence.
+
 	def fold(self):
 		test_set_size = int(len(self.links) / 5)  # Obtain the number of samples that we need to take.
 
@@ -342,7 +344,8 @@ class Model:
 					# We use this conditional to avoid genes with just one aparition. This is mathematically incorrect,
 					# but does the trick to avoid dividing by 0.
 					if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
-						raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
+						raise ValueError(
+							"Triplet " + triplet + " has one gene with just one aparition. Choosing randomly another")
 					else:
 						self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
 						name = self.id_gene[int(identifier)]  # obtain name
@@ -383,14 +386,15 @@ class Model:
 			for i in range(self.K):
 				for j in range(self.K):
 					for k in range(self.K):
-						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k][1]  # We want positives ([1])
+						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k][
+							1]  # We want positives ([1])
 			return p
 
 		try:
 			id1_int, id2_int, id3_int = int(id1), int(id2), int(id3)  # try to parse
 			probability = calculate(id1_int, id2_int, id3_int)  # calculate probability if everything goes OK
 		except ValueError:  # if can't parse to integer that means we are using names, so translate them first.
-			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3]) 
+			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3])
 
 		return probability
 
@@ -417,7 +421,7 @@ class Model:
 
 	# Method calcule_metrix:
 	#
-	# Description: 
+	# Description:
 	# Applies AUC approach to obtain metrix.
 	#
 	# First, calcule the cut_value taken as the threshold for choosing a sample as positive or negative.
@@ -426,8 +430,8 @@ class Model:
 	# positives" in the train_set, assuming that both sets (train_set and test_set) are homogeneous distributed.
 	#
 	# We are going to sort our train_set by the prediction value, keeping higher prediction values on the top.
-	# We will keep the first "number of predicted positives" values as positives, and the others as negatives.
-	# We will use the predicted probability of interaction from the last element predicted as positiven as the cut_value.
+	# We will keep the first "number of predicted positives" values as positives, and the others as negatives
+	# and  use the predicted probability of interaction from the last element predicted as positive as the cut_value.
 	# This value will decide if a sample is positive (>= cut_value) or negative (< cut_value).
 
 	@property
@@ -439,14 +443,14 @@ class Model:
 			if rating[1] == 1:
 				counter += 1
 		positives_fraction = counter / len(self.links)  # Obtain the fraction of positives in our training set
-		# Obtain the number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
+		# Get number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
 		positives_number = int(positives_fraction * len(self.test_links))
-		
+
 		# obtain the cut_value
 		counter = 0
 		for data in self.results:
 			if positives_number == counter:  # if we have read "positive_number" of positives, next one is the first
-				# negative, keeping it as the cut_value. We will use this value to decide if a sample is positive or negative
+				# negative, also, the cut_value. We will use this value to decide if a sample is positive or negative.
 				cut_value = data[0]
 				break  # and we exit, we don't need to read all the list
 			counter += 1
@@ -464,7 +468,7 @@ class Model:
 		# Compare all negatives with all positives
 		for positive in positives:
 			for negative in negatives:
-				if positive[0] > negative[0]:  # every time a positive has higher probability that a negative 
+				if positive[0] > negative[0]:  # every time a positive has higher probability that a negative
 					counter += 1
 		auc = counter / (len(positives) * len(negatives))  # 1 in a perfect distribution
 
@@ -546,7 +550,8 @@ class Model:
 					# HARDCODED: Assuming R = 2
 					gene_ids_str, aparitions1_str, aparitions0_str = sam.split('\t')
 					try:
-						gene_ids, aparitions1, aparitions0 = str(gene_ids_str), int(aparitions1_str), int(aparitions0_str)
+						gene_ids, aparitions1, aparitions0 = str(gene_ids_str), int(aparitions1_str), int(
+							aparitions0_str)
 						# Translate step
 						id1, id2, id3 = gene_ids.split('\t')
 						list_names = self.id_gene[id1], self.id_gene[id2], self.id_gene[id3],
@@ -624,7 +629,7 @@ class Model:
 				"NTHETA VECTOR": lambda x: read_vector(x, self.ntheta),
 			}
 			# Get the function from switcher dictionary
-			return switcher.get(argument, lambda: argument+"is invalid line")
+			return switcher.get(argument, lambda: argument + "is invalid line")
 
 		self.initialize_parameters()
 		try:
@@ -701,7 +706,7 @@ class Model:
 			txt = ''
 			txt += '\nPredicted Interaction\tID of genes\tReal Interaction\n'
 			for tupla in tuples:
-				txt += str(tupla[0])+'\t'+str(tupla[1])+'\t'+str(tupla[2])+'\n'
+				txt += str(tupla[0]) + '\t' + str(tupla[1]) + '\t' + str(tupla[2]) + '\n'
 			return txt
 
 		text = "Max Likelihood:\t" + str(self.likelihood) + "\n"
@@ -855,7 +860,8 @@ class Model:
 					for k in range(self.K):
 						for r in range(self.R):
 							# auxiliary variable
-							a = (self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]) / d[r]
+							a = (self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]) / \
+								d[r]
 							self.ntheta[id1][i] += a * rating_vector[r]
 							self.ntheta[id2][j] += a * rating_vector[r]
 							self.ntheta[id3][k] += a * rating_vector[r]
@@ -891,6 +897,7 @@ class Model:
 			for j in range(self.K):
 				for k in range(self.K):
 					self.npr[i][j][k] = [0.] * self.R
+
 	# Method compareDataset(model):
 	#
 	# Description: Given another object model, data of links and genes is comparated separately. This information will
@@ -927,17 +934,18 @@ class Model:
 		print(self.vlikelihood[0][2])
 
 		itera = self.vlikelihood[0][1]
-		while itera < self.vlikelihood[1+i][0]:
-			data_x.append(self.vlikelihood[1+i][1])
+		while itera < self.vlikelihood[1 + i][0]:
+			data_x.append(self.vlikelihood[1 + i][1])
 			print("bucle x")
 			print(data_x)
-			data_y.append(self.vlikelihood[1+i][2])
+			data_y.append(self.vlikelihood[1 + i][2])
 			print("bucle y")
 			print(data_y)
 
 		plt.plot(data_x, data_y)
 		plt.title('likelihood over iterations')
 		plt.show()
+
 
 # Function compareS1withS2:
 #
@@ -947,7 +955,6 @@ class Model:
 
 
 def compares1withs2():
-
 	rawmodel = Model()
 	rawmodel.get_input('Data_S1.csv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
@@ -956,7 +963,7 @@ def compares1withs2():
 
 	treatedmodel.to_file("treated.txt")
 	rawmodel.to_file("raw.txt")
-	
+
 	print("\nComparing treated with raw: ")
 	if treatedmodel.compare_dataset(rawmodel):
 		sub0 = 1
@@ -983,7 +990,7 @@ def usage(it, s, check, file, t, cutvalue, k):
 	txt = '\n\nUsage:\n'
 	txt += './TrigenicInteractionPredictor.py [-h|--help][-i|--iterations=] <number_of_iterations> '
 	txt += '[-s|--samples=] <number_of_samples> [-c|--check=] <frequency check> [-f|--file=] <file name> '
-	txt += '[-t|--type=] {"trigenic"|"digenic"|"*"} [-v|--cutvalue=] <cut off value> [-k|--k=] <Number of groups>'
+	txt += '[-t|--type=] {"trigenic"|"digenic"|"all"} [-v|--cutvalue=] <cut off value> [-k|--k=] <Number of groups>'
 	txt += '\n\n\nDescription of the arguments:\n[-h|--help] Calls help and exits the program.\n[-i|--iterations=]'
 	txt += ' Number of iterations done per sample for training the algorithm. More iterations increase the '
 	txt += 'likelihood of the model.\n[-s|--samples=] Number of times the algorithm is computated.\n[-c|--check=]'
@@ -991,16 +998,20 @@ def usage(it, s, check, file, t, cutvalue, k):
 	txt += ' checking the likelihood after computating every sample. Calculate the likelihood frequently decreases'
 	txt += ' the throughput of the algorithm.\n[-f|--file=] Relative (from this file) or absolute path to the'
 	txt += ' Data File.\n[-t|--type=] Selects which kind of interactions are going to be selected. Three possible'
-	txt += ' options available, trigenic, digenic or *, for selecting all types of interactions. In version 1.0, the'
+	txt += ' options available, trigenic, digenic or all, for selecting all types of interactions. In version 1.0, the'
 	txt += ' algorithm is not capable of processing digenic interactions.\n[-v|--cutvalue=] Value used for '
 	txt += 'determining if an interaction is positive or negative. \n[-k|--k=] Number of groups.\n\nArguments '
-	txt += 'can be left blank and the next default values will be selected:\n Number of iterations per sample: '+str(it)
-	txt += '\nNumber of samples: '+str(s)+'\nLikelihood frequency checking: '+str(check)+'\nData input file: '+str(file)
-	txt += '\nType of Interaction Selected: '+str(t)+'\nCut Off Value: '+str(cutvalue)+'\nNumber of groups: '+str(k)
+	txt += 'can be left blank and the next default values will be selected:\n Number of iterations per sample: ' + str(
+		it)
+	txt += '\nNumber of samples: ' + str(s) + '\nLikelihood frequency checking: ' + str(
+		check) + '\nData input file: ' + str(file)
+	txt += '\nType of Interaction Selected: ' + str(t) + '\nCut Off Value: ' + str(
+		cutvalue) + '\nNumber of groups: ' + str(k)
 	txt += '\n\nThis code is optimized to be executed by pypy3. You can find a pypy3 environment in'
 	txt += 'the src folder of the project. In a terminal situated in that folder, the execution with pypy3'
 	txt += 'follows the next pattern:\n\n./pypy3/bin/pypy3 TrigenicInteractionPredictor.py {arguments}\n'
 	print(txt)
+
 
 # Main Function:
 #
@@ -1039,43 +1050,43 @@ if __name__ == "__main__":
 			usage(iterations, samples, frequencyCheck, filename, interactionType, cutOffValue, argk)
 			exit(0)
 		elif opt in ("-i", "--iterations"):
-			iterations = arg
+			iterations = int(arg)
 		elif opt in ("-s", "--samples"):
-			samples = arg
+			samples = int(arg)
 		elif opt in ("-c", "--check"):
-			frequencyCheck = arg
+			frequencyCheck = int(arg)
 		elif opt in ("-f", "--file"):
 			filename = arg
 		elif opt in ("-t", "--type"):
 			interactionType = arg
 		elif opt in ("-v", "--cutvalue"):
-			cutOffValue = arg
+			cutOffValue = float(arg)
 		elif opt in ("-k", "--k"):
-			argk = arg
+			argk = int(arg)
 
 	print(opts)
 	print(args)
 
-	cosa = input()
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
-	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations."
-	msg += "\nData is read from file "+filename+"."+"\n"+interactionType+" interactions are currently selected. "
-	msg += "\nTau/epsilon cutOffvalue is "+str(cutOffValue)+"K value (number of groups) is "+str(argk)+"."
-	msg += "\nLikelihood will be calculated every "+str(frequencyCheck)+" iterations."
+	msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
+	msg += "\nData is read from file " + filename + "." + "\n"
+	msg += interactionType + " interactions are currently selected. "
+	msg += "\nTau/epsilon cutOffvalue is " + str(cutOffValue) + "\nK value (number of groups) is " + str(argk) + "."
+	msg += "\nLikelihood will be calculated every " + str(frequencyCheck) + " iterations."
 	print(msg)
 
 	model = Model()
-	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
+	model.get_input(filename, interactionType, cutOffValue)
 	model.fold()
 
 	print("\nStarting algorithm...")
 
 	for sample in range(int(samples)):
-		print("Sample "+str(1 + sample)+":")
+		print("Sample " + str(1 + sample) + ":")
 		model.initialize_parameters(argk)
 		print("Parameters have been initialized")
 		like0 = model.compute_likelihood()
-		print("· Likelihood 0 is "+str(like0))
+		print("· Likelihood 0 is " + str(like0))
 		model.vlikelihood.append([sample, 0, like0])  # append result into the global vector of likelihoods
 
 		for iteration in range(iterations):
@@ -1084,9 +1095,10 @@ if __name__ == "__main__":
 			if iteration % frequencyCheck == 0:
 				like = model.compute_likelihood()
 				print("· Likelihood " + str(iteration + 1) + " is " + str(like))
-				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
+				model.vlikelihood.append(
+					[sample, iteration + 1, like])  # append result into the global vector of likelihoods
 				if math.fabs((like - like0) / like0) < 0.01:
-					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
+					print("\n\t**************************\n\t* Likelihood has converged *\n\t*************************")
 					# model.to_file("outprev" + str(sample) + ".csv") # // debug
 					# model.get_data("out1.txt")
 					# model.to_file("late"+str(sample)+".csv") # // debug
