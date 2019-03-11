@@ -1,4 +1,4 @@
-# TrigenicInteractionPredictor
+﻿# TrigenicInteractionPredictor
 Algorithm that predicts interaction between triplets of genes.
 
 ## Description
@@ -6,6 +6,7 @@ Algorithm that predicts interaction between triplets of genes.
 Genetic interactions occur when mutations in different genes combine to result in a phenotype that is different from expected when observed in different individuals. In other words, when the phenotype of an individual that has two different mutations is significable different from the phenotype of an individual with one or the other mutation individiually, it has occured a genetic interaction.
 * This algorithm applies the model Mixed-Membership [Stochastic Block Model](https://en.wikipedia.org/wiki/Stochastic_block_model) (MMSBM) to predict interaction between tripletes of genes in [Pichia pastoris](https://en.wikipedia.org/wiki/Pichia_pastoris). 
 * We use supplementary materials from the article [Systematic analysis of complex genetic interactions"](http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our data.
+* These materials can be found [here](https://www.dropbox.com/sh/4wblbdwzy4bki53/AACM46GqkfJmzS7iekKcG4Wba?dl=0). Nevertheless, they will move soon to git lfs in order to have the datasets more available.
 
 ## Algorithm
 
