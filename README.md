@@ -1,4 +1,4 @@
-﻿# TrigenicInteractionPredictor
+# TrigenicInteractionPredictor
 Algorithm that predicts interaction between triplets of genes.
 
 ## Description
@@ -23,6 +23,7 @@ The main program has many steps:
 5.- All the data from the execution will be saved automatically for every sample even if it doesn't converge.
 
 ## Usage
+
 To execute the code and speeding it up you'll use a **pypy3** virtual environment. There's one uploaded in the repository in the folder `src/`. To execute it open a terminal and situate it in the `src` folder. Then type, for executing the algorithm with the default options:
 ```
 pypy3-v6.0.0-linux64/bin/pypy3 TrigenicInteractionPredictor.py

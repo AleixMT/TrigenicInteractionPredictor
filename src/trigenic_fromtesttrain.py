@@ -87,7 +87,7 @@ if __name__ == "__main__":
 #					model.get_data("out1.txt")
 					outfile = 'outSamp%dK%d.csv' % (sample,argk)
 #					model.to_file("late"+str(sample)+".csv") # // debug
-					model.to_file_short(outfile) # // debug
+					model.to_file(outfile) # // debug
 #					model.calculate_test_set_results()
 #					precision,recall, fallout,auc = model.calculate_metrics()
 #					print('Precision,',precision)
