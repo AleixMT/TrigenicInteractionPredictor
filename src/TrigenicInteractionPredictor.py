@@ -1125,8 +1125,8 @@ if __name__ == "__main__":
 
 	# Default arguments
 	iterations = 10
-	samples = 1
-	frequencyCheck = 1
+	samples = 10
+	frequencyCheck = 10
 	filename = "/home/aleixmt/Data_S1.csv"
 	interactionType = "trigenic"
 	cutOffValue = -0.08
@@ -1209,7 +1209,7 @@ if __name__ == "__main__":
 	print(msg)
 
 	model = Model()
-	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
+	model.get_input(filename, interactionType, cutOffValue, 0, 'ALL')
 	model.fold(output=1)
 
 	print("\nStarting algorithm...")
