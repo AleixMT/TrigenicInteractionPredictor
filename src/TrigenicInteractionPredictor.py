@@ -102,9 +102,9 @@ class Model:
 	# K 				--> number of groups of gene
 	# R 				--> Number of possible ratings [0|1]
 
-	def initialize_parameters(self, kvalue=10):
+	def initialize_parameters(self, k_value=10):
 		try:
-			self.K = int(kvalue)  # set K value to initialize parameters
+			self.K = int(k_value)  # set K value to initialize parameters
 		except ValueError:  # if we cant parse
 			self.K = 10
 
@@ -146,7 +146,7 @@ class Model:
 					a = [random.random() for _ in range(self.K)]  # xrange to generate big lists (optimization)
 					self.theta[i] = a
 
-			sumtheta = sum(self.theta[i]) 
+			sumtheta = sum(self.theta[i])
 			for k in range(self.K):  # iterate over number of groups of genes
 				try:
 					self.theta[i][k] /= sumtheta
@@ -212,7 +212,7 @@ class Model:
 	# 7.- P-value
 	# 8.- Interaction type
 
-	def get_input(self, argfilename, selectedinteractiontype, cutoffvalue, discard=0, interactions='ALL'):
+	def get_input(self, argfilename, selectedinteractiontype="trigenic", cutoffvalue=-0.08, discard=0, interactions='ALL'):
 		try:
 			gid = 0
 
@@ -359,8 +359,7 @@ class Model:
 						self.links[str_gene_triplet] = [0] * 2
 						self.links[str_gene_triplet][r] += 1
 
-				self.P = len(self.id_gene)  # get number of users
-				fileref.close()
+				self.P = len(self.id_gene)  # get number of genes
 
 			with codecs.open(testfile, encoding='utf-8', mode='r') as fileref:
 
@@ -402,7 +401,6 @@ class Model:
 						self.test_links[str_gene_triplet][r] += 1
 
 				self.P = len(self.id_gene)  # get number of users
-				fileref.close()
 
 		except ValueError as error:
 			print(error)
@@ -415,91 +413,54 @@ class Model:
 
 	# Method fold:
 	#
-	# Description: "Folds" the data in the object model.
+	# Description: Produces test_sets and train_sets from the data_set contained in the model instance. Data that will
+	# be split is contained in self.links, self.n_links and self.uniqueg.
+	#
+	# We will produce num_folds files of test set and num_folds files of train set. Every test set contains
+	# (fraction * 100) % of the total triplets. There are no repeated triplets between test sets.
+	# Every train set contains ( (1 - fraction) * 100) % of the total triplets. For every test set there is a corresponding
+	# train test that fulfills the next equation train_test + test_set = whole_data_set (contained in self).
+	#
+	# There is a correspondence of a test set to a train set. We use a certain train_set to train the algorithm and the
+	# test set to validate that training. All triplets of a certain test_set are not present in the corresponding train_
+	# set.
+	#
+	# PRE: Data that is going to be split is stored in self.links and self.nlinks. self.uniqueg stores apparition of every
+	# gene so is coherent with self.links and self.n_links dictionaries.
+	# POST: All internal data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train or
+	# test.
 	#
 	# Input Parameters:
 	# - fraction: Relative size of test set
-	# - folds: if folds == 'yes' generate and print all training & test sets
-	def fold(self, fraction=0.2, output=None):
+
+	def fold(self, fraction=0.2):
 		test_set_size = int(len(self.links) * fraction)
-		n_folds = int(1/fraction)
+		num_folds = int(1/fraction)
 
 		# Add all triplets from self.links to array_links
 		array_links = []
 		for triplet, rating in self.links.items():
 			array_links.append(triplet)
-		np.random.shuffle(array_links)  # We shuffle the array_links list and then make equal splits
+		np.random.shuffle(array_links)  # We shuffle the array_links list (every time we fold, output will be different)
 
-		# Generate name and file pointers for current train and test files
-		# Generate all names and create all file pointers for n_folds tests and n_folds trains
-		if output:
-			train_filename = 'train.dat'
-			test_filename = 'test.dat'
-			outf_train = codecs.open(train_filename, encoding='utf-8', mode="w+")
-			outf_test = codecs.open(test_filename, encoding='utf-8', mode="w+")
+		# Generate file pointers for all train and test files
+		test_files = []
+		train_files = []
+		for i in range(num_folds):  # Create all train test file names & open file handles
+			test_files.append(codecs.open('test' + str(i) + '.dat', encoding='utf-8', mode="w+"))
+			train_files.append(codecs.open('train' + str(i) + '.dat', encoding='utf-8', mode="w+"))
 
-			test_file_names = []
-			test_files = []
-			train_file_names = []
-			train_files = []
-			for i in range(n_folds):  # Create all train test file names & open file handles
-				test_file_names.append('test%d.dat' % i)
-				test_files.append(codecs.open(test_file_names[i], encoding='utf-8', mode="w+"))
-				train_file_names.append('train%d.dat' % i)
-				train_files.append(codecs.open(train_file_names[i], encoding='utf-8', mode="w+"))
+		tests = []  # test stores num_folds splits of triplets
+		# Append to test[] every slice of size test_set_size from array_links,
+		for i in range(0, num_folds):
+			tests.append(array_links[test_set_size * i: test_set_size * (i + 1)])
 
-		count = 0
-		test = []  # test stores n_folds splits of triplets, test[0] is the test set for this run
-		train = []  # train stores the edges for the training set for this run
-		# Train = test[1:4]
-		# Append to test[] and train[] every slice of size test_set_size from array_links, except for train [],
-		# where we won't add the first slice array_links(0:test_set_size)
-		test.append(array_links[0: test_set_size])
-		for i in range(1, n_folds):
-			test.append(array_links[test_set_size * i: test_set_size * (i + 1)])
-			train += test[i]
+		# All remaining triplets in array links are put in the last test set
+		tests[num_folds - 1] += array_links[test_set_size * num_folds:]
 
-		# All remaining triplets in array links are put in the last test set and in the train set.
-		test += array_links[test_set_size * n_folds:]
-		train += array_links[test_set_size * n_folds:]
-
-		# Create test & train for this run
-		# We will remove links from the test[0] from the "actual" (stored in links and uniqueg) train
-		for triplet in test[0]:
-			# Check if the rating is in the dictionary and set its rating
-			rating = 1
-			if self.links[triplet][0]:
-				rating = 0
-
-			self.test_links[triplet] = [0] * 2  # Initialize dictionary position:
-			self.test_links[triplet][rating] += 1  # link is seen +1 time
-			ids = triplet.split("_")  # split ids
-
-			# Obtain names for the genes in the triplet.
-			names = []
-			for identifier in ids:
-				self.uniqueg[int(identifier)] -= 1  # subtract one apparition to that gene.
-				name = self.id_gene[int(identifier)]  # obtain name
-				names.append(name)  # accumulate
-
-			# Obtain rating for the current triplet. (assuming just one given rating between r=0 or r=1)
-			names.sort()  # create identifier name string
-			str_names = '_'.join(names)
-			self.nlinks.pop(str_names)  # delete aparition from the gene name dictionary
-			self.links.pop(triplet)  # delete aparition from the gene ID dictionary
-
-			# print fold and train if output variable is defined
-			if output:
-				data = str_names + '\t' + str(rating) + '\n'
-				outf_test = test_files[0]
-				outf_test.write(data)
-				outf_test.flush()  # Forces output to be on disk
-
-		# Output to file remaining test sets [1:5]
-		print('remaining test sets')  # //
-		for f in range(1, n_folds):
-			print('fold', f, len(test[f]))  # //
-			for triplet in test[f]:
+		# Output test files
+		for num_fold in range(num_folds):
+			for triplet in tests[num_fold]:
 				rating = 1
 				if self.links[triplet][0]:
 					rating = 0
@@ -514,18 +475,24 @@ class Model:
 				names.sort()  # create identifier name string
 				str_names = '_'.join(names)
 
-				# print fold and train if output variable is defined
-				if output:
-					data = str_names + '\t'+str(rating)+'\n'
-					outf_test = test_files[f]
-					outf_test.write(data)
-					outf_test.flush()
+				# file-print current test
+				data = str_names + '\t' + str(rating) + '\n'
+				test_files[num_fold].write(data)
+				test_files[num_fold].flush()
+			test_files[num_fold].close()
 
-		for triplet in train:
-			count += 1
-			if output:
+		# train stores num_folds training sets. Every training set contains all test_sets except the one that we are
+		# testing against. train is a List of List of Strings.
+		train = []
+		# Contains all triplets for a single train. train_tmp is a List of Strings
+		train_tmp = []
+		for num_fold in range(num_folds):
+			for current_test in tests[: num_fold] + (tests[num_fold + 1:]):  # Select all tests except the counterpart
+				train_tmp.extend(current_test)  # Acummulate all triplets from different tests in train_tmp
+			train.append(train_tmp)
+			for triplet in train[num_fold]:
 				ids = triplet.split("_")  # split it
-		# Obtain names for the genes in the triplet.
+				# Obtain names for the genes in the triplet.
 				names = []
 				for identifier in ids:
 					name = self.id_gene[int(identifier)]
@@ -538,13 +505,12 @@ class Model:
 
 				names.sort()
 				str_names = '_'.join(names)
-				data = str_names + '\t'+str(rating)+'\n'
-				outf_train = train_files[0]
-				outf_train.write(data)
-				outf_train.flush()
 
-		outf_train.close()
-		outf_test.close()
+				# file-print current train
+				data = str_names + '\t' + str(rating) + '\n'
+				train_files[num_fold].write(data)
+				train_files[num_fold].flush()
+			train_files[num_fold].close()
 
 	# Method do_prediction:
 	#
@@ -860,8 +826,6 @@ class Model:
 		except IOError:
 			print("I/O error")
 
-
-
 	# Method compareLinks:
 	#
 	# Description: Given two object of type "Model" a and b, with a call "a.compareLinks(b)" we return a list of
@@ -964,8 +928,9 @@ class Model:
 		# divide all possibilities of i belonging to a group k with the number of relation of that user
 		for i in range(self.P):
 			for k in range(self.K):
-##				self.ntheta[i][k] /= float(self.uniqueg[i]) ## wrong denominator, uniqueg was computed for the whole set!! Needs to be computed only for the train set
 				self.ntheta[i][k] /= float(counter[i])
+				if counter[i] != self.uniqueg[i]:
+					print("\nFor gene " + str(i) + "\nCounter is " + str(counter[i]) + "\nuniqueg is " + str(self.uniqueg[i]))
 
 		# divide the probability of the group k giving rate to a item l with a rating r between the sum of all ratings
 		for i in range(self.K):
@@ -1078,13 +1043,13 @@ def compares1withs2():
 
 # help Function:
 #
-# Decription: Gives a small help about the usage of the algorithm
+# Description: Gives a small help about the usage of the algorithm
 
-def usage(it, s, check, file, t, cutvalue, k):
+def usage(it, s, check, file, k):
 	txt = '\n\nUsage:\n'
 	txt += './TrigenicInteractionPredictor.py [-h|--help][-i|--iterations=] <number_of_iterations> '
 	txt += '[-s|--samples=] <number_of_samples> [-c|--check=] <frequency check> [-f|--file=] <file name> '
-	txt += '[-t|--type=] {"trigenic"|"digenic"|"all"} [-v|--cutvalue=] <cut off value> [-k|--k=] <Number of groups>'
+	txt += '[-k|--k=] <Number of groups>'
 	txt += '\n\n\nDescription of the arguments:\n[-h|--help] Calls help and exits the program.\n[-i|--iterations=]'
 	txt += ' Number of iterations done per sample for training the algorithm. More iterations increase the '
 	txt += 'likelihood of the model.\n[-s|--samples=] Number of times the algorithm is computated.\n[-c|--check=]'
@@ -1099,8 +1064,7 @@ def usage(it, s, check, file, t, cutvalue, k):
 		it)
 	txt += '\nNumber of samples: ' + str(s) + '\nLikelihood frequency checking: ' + str(
 		check) + '\nData input file: ' + str(file)
-	txt += '\nType of Interaction Selected: ' + str(t) + '\nCut Off Value: ' + str(
-		cutvalue) + '\nNumber of groups: ' + str(k)
+	txt += '\nNumber of groups: ' + str(k)
 	txt += '\n\nThis code is optimized to be executed by pypy3. You can find a pypy3 environment in'
 	txt += 'the src folder of the project. In a terminal situated in that folder, the execution with pypy3'
 	txt += 'follows the next pattern:\n\n./pypy3/bin/pypy3 TrigenicInteractionPredictor.py {arguments}\n'
@@ -1126,22 +1090,18 @@ if __name__ == "__main__":
 	# Default arguments
 	iterations = 10
 	samples = 10
-	frequencyCheck = 10
+	frequencyCheck = 1
 	filename = "/home/aleixmt/Data_S1.csv"
-	interactionType = "trigenic"
-	cutOffValue = -0.08
-	argk = 10
+	argk = 4
 
 	# This method returns value consisting of two elements: the first is a list of (option, value) pairs.
 	# The second is the list of program arguments left after the option list was stripped.
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hi:s:c:f:t:v:k:",
-									["help", "iterations=", "samples=", "check=", "file=",
-									"type=", "cutvalue=", "k="])
+		opts, args = getopt.getopt(sys.argv[1:], "hi:s:c:f:k:", ["help", "iterations=", "samples=", "check=", "file=", "k="])
 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):  # Show the usage if help is called
-				usage(iterations, samples, frequencyCheck, filename, interactionType, cutOffValue, argk)
+				usage(iterations, samples, frequencyCheck, filename, argk)
 				exit(0)
 			elif opt in ("-i", "--iterations"):
 				if int(arg) < 1:
@@ -1167,31 +1127,20 @@ if __name__ == "__main__":
 				else:
 					print("\n\nERROR: The selected file does not exist.")
 					raise ValueError
-			elif opt in ("-t", "--type"):
-				arg = str(arg).lower()  # convert into lowercase
-				if arg in ["trigenic", "digenic", "all"]:
-					interactionType = arg
-				else:
-					print("\n\nERROR: Selected interaction type should be trigenic, digenic or all")
-					print(
-						"./TrigenicInteractionPredictor.py -t [trigenic|digenic|all] --type=[trigenic|digenic|all)")
-					raise ValueError
-			elif opt in ("-v", "--cutvalue"):
-				cutOffValue = float(arg)
 			elif opt in ("-k", "--k"):
 				if int(arg) < 1:
 					print("\n\nERROR: Number of groups should be a positive integer number different from 0")
 					raise ValueError
-				if int(arg) == 0:
+				if int(arg):
 					print(
-						"\n\nWARNING:If number of groups is 1, every gene is single-membership instead of mixed\n")
+						"\n\nWARNING:If number of groups is 1, algorithm is single-membership instead of mixed\n")
 				argk = int(arg)
 
 	except getopt.GetoptError:
-		usage(iterations, samples, frequencyCheck, filename, interactionType, cutOffValue, argk)
+		usage(iterations, samples, frequencyCheck, filename, argk)
 		sys.exit(2)
 	except ValueError:
-		usage(iterations, samples, frequencyCheck, filename, interactionType, cutOffValue, argk)
+		usage(iterations, samples, frequencyCheck, filename, argk)
 		sys.exit(2)
 
 	# Display Warning
@@ -1203,23 +1152,22 @@ if __name__ == "__main__":
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
 	msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
 	msg += "\nData is read from file " + filename + "." + "\n"
-	msg += interactionType + " interactions are currently selected. "
-	msg += "\nTau/epsilon cutOffvalue is " + str(cutOffValue) + "\nK value (number of groups) is " + str(argk) + "."
+	msg += "K value (number of groups) is " + str(argk) + "."
 	msg += "\nLikelihood will be calculated every " + str(frequencyCheck) + " iterations."
 	print(msg)
 
 	model = Model()
-	model.get_input(filename, interactionType, cutOffValue, 0, 'ALL')
-	model.fold(output=1)
+	model.get_input(filename)
+	model.fold()
 
 	print("\nStarting algorithm...")
 
 	for sample in range(int(samples)):
-		print("Sample "+str(1 + sample)+":")
+		print("Sample " + str(1 + sample) + ":")
 		model.initialize_parameters(argk)
 		print("Parameters have been initialized")
 		like0 = model.compute_likelihood()
-		print("· Likelihood 0 is "+str(like0))
+		print("·Initial Likelihood is "+str(like0))
 		model.vlikelihood.append([sample, 0, like0])  # append result into the global vector of likelihoods
 
 		for iteration in range(iterations):
@@ -1231,9 +1179,8 @@ if __name__ == "__main__":
 				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
 				if math.fabs((like - like0) / like0) < 0.001:
 					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
-					outfile = 'outSamp%dK%d.csv' % (sample,argk)
+					outfile = 'Sample' + str(sample) + '_K' + str(argk) + '.csv'
 					model.to_file(outfile)  # // debug
 
 					break
 				like0 = like
-			# model.get_data("out2.txt")  # // debug
