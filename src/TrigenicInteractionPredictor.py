@@ -484,9 +484,8 @@ class Model:
 		# train stores num_folds training sets. Every training set contains all test_sets except the one that we are
 		# testing against. train is a List of List of Strings.
 		train = []
-		# Contains all triplets for a single train. train_tmp is a List of Strings
-		train_tmp = []
 		for num_fold in range(num_folds):
+			train_tmp = [] 	# Contains all triplets for a single train. train_tmp is a List of Strings
 			for current_test in tests[: num_fold] + (tests[num_fold + 1:]):  # Select all tests except the counterpart
 				train_tmp.extend(current_test)  # Acummulate all triplets from different tests in train_tmp
 			train.append(train_tmp)
