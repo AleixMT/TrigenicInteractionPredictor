@@ -174,7 +174,7 @@ class Model:
 	# P is also initialized with the number of genes.
 	#
 	# Arguments:
-	# 1.- filename: File to read will be selected with this parameters
+	# 1.- trainfile: File to read will be selected with this parameters
 	# 2.- selectedInteractionType: [trigenic|digenic|*] Type of interaction to select. "*" to select all.
 	# 3.- cutoffValue: selects the interaction as positive [1] with an adjusted genetic interaction score under
 	# this value or as negative [0] if not. Use sys.float_info.max or sys.float_info.min in this parameter for assuming
@@ -928,8 +928,6 @@ class Model:
 		for i in range(self.P):
 			for k in range(self.K):
 				self.ntheta[i][k] /= float(counter[i])
-				if counter[i] != self.uniqueg[i]:
-					print("\nFor gene " + str(i) + "\nCounter is " + str(counter[i]) + "\nuniqueg is " + str(self.uniqueg[i]))
 
 		# divide the probability of the group k giving rate to a item l with a rating r between the sum of all ratings
 		for i in range(self.K):
@@ -1078,7 +1076,7 @@ def usage(it, s, check, file, k):
 # 1.- iterations: Number of iterations done by algorithm.
 # 2.- samples: Number of samples done by algorithm.
 # 3.- frequencyCheck: Number of iterations needed to check if likelihood has converged.
-# 4.- filename: Name of the dataset filename.
+# 4.- trainfile: Name of the dataset trainfile.
 # 5.- interactionType: Type of interaction selected.
 # 6.- cutOffValue: Value used to determine if an interaction is positive or negative.
 
@@ -1087,20 +1085,21 @@ if __name__ == "__main__":
 	random.seed(os.getpid())
 
 	# Default arguments
-	iterations = 10
-	samples = 10
-	frequencyCheck = 1
-	filename = "/home/aleixmt/Data_S1.csv"
+	iterations = 10000
+	samples = 100
+	frequencyCheck = 10
+	train = ""
+	test = ""
 	argk = 4
 
 	# This method returns value consisting of two elements: the first is a list of (option, value) pairs.
 	# The second is the list of program arguments left after the option list was stripped.
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hi:s:c:f:k:", ["help", "iterations=", "samples=", "check=", "file=", "k="])
+		opts, args = getopt.getopt(sys.argv[1:], "hi:s:c:t:e:k:", ["help", "iterations=", "samples=", "check=", "train=", "test=", "k="])
 
 		for opt, arg in opts:
 			if opt in ("-h", "--help"):  # Show the usage if help is called
-				usage(iterations, samples, frequencyCheck, filename, argk)
+				usage(iterations, samples, frequencyCheck, train, argk)
 				exit(0)
 			elif opt in ("-i", "--iterations"):
 				if int(arg) < 1:
@@ -1120,9 +1119,15 @@ if __name__ == "__main__":
 					frequencyCheck = iterations + 1  # Checking likelihood just at the end
 				else:
 					frequencyCheck = int(arg)
-			elif opt in ("-f", "--file"):
+			elif opt in ("-t", "--train"):
 				if os.path.isfile(arg):
-					filename = arg
+					train = arg
+				else:
+					print("\n\nERROR: The selected file does not exist.")
+					raise ValueError
+			elif opt in ("-e", "--test"):
+				if os.path.isfile(arg):
+					test = arg
 				else:
 					print("\n\nERROR: The selected file does not exist.")
 					raise ValueError
@@ -1130,16 +1135,16 @@ if __name__ == "__main__":
 				if int(arg) < 1:
 					print("\n\nERROR: Number of groups should be a positive integer number different from 0")
 					raise ValueError
-				if int(arg):
+				if int(arg == 1):
 					print(
 						"\n\nWARNING:If number of groups is 1, algorithm is single-membership instead of mixed\n")
 				argk = int(arg)
 
 	except getopt.GetoptError:
-		usage(iterations, samples, frequencyCheck, filename, argk)
+		usage(iterations, samples, frequencyCheck, train, argk)
 		sys.exit(2)
 	except ValueError:
-		usage(iterations, samples, frequencyCheck, filename, argk)
+		usage(iterations, samples, frequencyCheck, train, argk)
 		sys.exit(2)
 
 	# Display Warning
@@ -1150,14 +1155,13 @@ if __name__ == "__main__":
 	# Start Algorithm
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
 	msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
-	msg += "\nData is read from file " + filename + "." + "\n"
+	msg += "\nData is read from file " + train + "and " + test + ".\n"
 	msg += "K value (number of groups) is " + str(argk) + "."
 	msg += "\nLikelihood will be calculated every " + str(frequencyCheck) + " iterations."
 	print(msg)
 
 	model = Model()
-	model.get_input(filename)
-	model.fold()
+	model.get_traintest(train, test)
 
 	print("\nStarting algorithm...")
 
