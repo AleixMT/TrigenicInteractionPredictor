@@ -26,7 +26,7 @@ import random
 import sys
 import copy
 import math
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -978,30 +978,6 @@ class Model:
 
 		return link and node
 
-	# Method plot_likelihood:
-	#
-	# Description: Plots the likelihood.
-	def plot_likelihood(self):
-		i = 0
-		print(self.vlikelihood[0][0])
-		print(self.vlikelihood)
-		data_x = [self.vlikelihood[0][1]]
-		data_y = [self.vlikelihood[0][2]]
-		print(self.vlikelihood[0][2])
-
-		itera = self.vlikelihood[0][1]
-		while itera < self.vlikelihood[1+i][0]:
-			data_x.append(self.vlikelihood[1+i][1])
-			print("bucle x")
-			print(data_x)
-			data_y.append(self.vlikelihood[1+i][2])
-			print("bucle y")
-			print(data_y)
-
-		plt.plot(data_x, data_y)
-		plt.title('likelihood over iterations')
-		plt.show()
-
 
 # Function compareS1withS2:
 #
@@ -1155,7 +1131,7 @@ if __name__ == "__main__":
 	# Start Algorithm
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
 	msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
-	msg += "\nData is read from file " + train + "and " + test + ".\n"
+	msg += "\nData is read from train-file " + train + " and test-file" + test + ".\n"
 	msg += "K value (number of groups) is " + str(argk) + "."
 	msg += "\nLikelihood will be calculated every " + str(frequencyCheck) + " iterations."
 	print(msg)
@@ -1180,7 +1156,7 @@ if __name__ == "__main__":
 				like = model.compute_likelihood()
 				print("· Likelihood " + str(iteration + 1) + " is " + str(like))
 				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
-				if math.fabs((like - like0) / like0) < 0.001:
+				if math.fabs((like - like0) / like0) < 0.0001:
 					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
 					outfile = 'Sample' + str(sample) + '_K' + str(argk) + '.csv'
 					model.to_file(outfile)  # // debug
