@@ -80,7 +80,7 @@ if __name__ == "__main__":
 				like = model.compute_likelihood()
 				print("· Likelihood " + str(iteration + 1) + " is " + str(like))
 				model.vlikelihood.append([sample, iteration + 1, like])  # append result into the global vector of likelihoods
-				if math.fabs((like - like0) / like0) < 0.001:
+				if math.fabs((like - like0) / like0) < 0.0001:
 					print("\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
 
 #					model.to_file("outprev" + str(sample) + ".csv") # // debug

@@ -865,13 +865,18 @@ class Model:
 
 	# Method computeLikelihood:
 	#
-	# Description: Computes likelihood of the current data stored in the object.
+	# Description: Computes likelihood of one of the current data sets contained in the class. By default the likelihood
+	# of train set 
 	#
 	# Return Parameters:
 	# 1.- Returns the likelihood.
-	def compute_likelihood(self):
+	def compute_likelihood(self, selectedset='train'):
+		if selectedset == 'train':
+			x = self.links.items()
+		else:
+			x = self.test_links.items()
 		log_l = 0.
-		for triplet, rating_vector in self.links.items():  # e X ra iteration
+		for triplet, rating_vector in x:  # e X ra iteration
 			g1, g2, g3 = triplet.split('_')
 			id1, id2, id3 = int(g1), int(g2), int(g3)  # get IDs from three genes from link
 			d = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
