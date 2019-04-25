@@ -866,7 +866,7 @@ class Model:
 	# Method computeLikelihood:
 	#
 	# Description: Computes likelihood of one of the current data sets contained in the class. By default the likelihood
-	# of train set 
+	# of train set
 	#
 	# Return Parameters:
 	# 1.- Returns the likelihood.
