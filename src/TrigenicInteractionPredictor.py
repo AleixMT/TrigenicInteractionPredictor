@@ -1151,7 +1151,7 @@ if __name__ == "__main__":
     iterations = 10000
     samples = 100
     frequencyCheck = 25
-    beginCheck = 400
+    beginCheck = 100
     train = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/train0.dat"
     test = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/test0.dat"
     outfilepath = ""
@@ -1230,6 +1230,13 @@ if __name__ == "__main__":
         print("\n\nWARNING: the likelihood frequency checking is bigger that the number of iterations per sample.")
         print("likelihood will only be calculated at the end of every sample (equivalent to --check=0 or -c 0)\n")
 
+    num = -1
+    for root, dirs, files in os.walk(outfilepath):
+        for filename in files:
+            if int(filename.split('_')[1]) > num:
+                num = int(filename.split('_')[1])
+
+    print("\n Last sample computed was: " +  str(num))
     # Start Algorithm
     msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
     msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
@@ -1243,8 +1250,8 @@ if __name__ == "__main__":
 
     print("\nStarting algorithm...")
 
-    for sample in range(int(samples)):
-        print("Sample " + str(1 + sample) + ":")
+    for sample in range(num + 1, int(samples)):
+        print("Sample " + str(sample) + ":")
         model.initialize_parameters(argk)
         print("Parameters have been initialized")
         like0 = model.compute_likelihood()
@@ -1259,10 +1266,10 @@ if __name__ == "__main__":
                 print("· Likelihood " + str(iteration + 1) + " is " + str(like))
                 model.vlikelihood.append(
                     [sample, iteration + 1, like])  # append result into the global vector of likelihoods
-                if math.fabs((like - like0) / like0) < 0.0001:
+                if math.fabs((like - like0) / like0) < 0.01:
                     print(
                         "\n\t****************************\n\t* Likelihood has converged *\n\t****************************")
-                    outfile = outfilepath + '/Sample' + str(sample) + '_K' + str(argk) + '.csv'
+                    outfile = outfilepath + '/Sample_' + str(sample) + '_K' + str(argk) + '.csv'
                     model.to_file(outfile)  # // debug
 
                     break

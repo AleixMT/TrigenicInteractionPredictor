@@ -1,15 +1,16 @@
 #!/bin/bash
 
+# Generate independent calls to main script in order to run in parallel
+
 python_interpreter='python3'
 trigenicInteractionPredictor='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/src/TrigenicInteractionPredictor.py'
 traintest_datasets_folder='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/'
 output_base_path=''
-arg_k=('2' '3' '4')
+arg_k=('2' '3' '4' '5')
 trainfile_basename='train'
 testfile_basename='test'
 
 # create folder structure to run in parallel
-rm -rf results
 mkdir results
 cd results
 for k in ${arg_k[@]}; do
@@ -32,5 +33,5 @@ for k in ${arg_k[@]}; do
     done
 done
 
-parallel --eta --bar --jobs 12 :::: batch_commands.sh
+parallel --eta --bar --jobs 0 :::: batch_commands.sh
 
