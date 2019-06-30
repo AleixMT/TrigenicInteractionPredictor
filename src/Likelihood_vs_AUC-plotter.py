@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import codecs
 import re
 import numpy as np
+import os
 
 if __name__ == "__main__":
 
@@ -14,22 +15,27 @@ if __name__ == "__main__":
 	K2 = [[], []]
 	K3 = [[], []]
 	K4 = [[], []]
+	K5 = [[], []]
 
 	results.append(K2)
 	results.append(K3)
 	results.append(K4)
-	with codecs.open("/home/aleixmt/Desktop/TrigenicInteractionPredictor/Filtered_Results.txt", encoding='utf-8', mode='r') as fileref:
+	results.append(K5)
+
+	with codecs.open("/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/Filtered_results.csv", encoding='utf-8', mode='r') as fileref:
 		while True:
 			# Decide where the current result belongs
 			line = fileref.readline()
 
-			if re.match(".*Datasets", line):  # shitty way to know if we are at the end (fileread returns garbage)
+			if re.match("K.*", line):  # shitty way to know if we are at the end (fileread returns garbage)
 				pass
 			else:
 				break
 
 			K_index = -1
-			if re.search("K4", line):
+			if re.search("K5", line):
+				K_index = 3
+			elif re.search("K4", line):
 				K_index = 2
 			elif re.search("K3", line):
 				K_index = 1
@@ -38,8 +44,7 @@ if __name__ == "__main__":
 
 			line = fileref.readline()  # Obtain line of the likelihood
 			likelihood = line.split("\t")[1].split("\n")[0]
-			fileref.readline()  # Skip 2 lines corresponding to titles
-			fileref.readline()
+
 
 			metrics = fileref.readline()  # Obtain AUC metric
 			AUC = metrics.split("\t")[3].split("\n")[0]
@@ -48,11 +53,11 @@ if __name__ == "__main__":
 			results[K_index][1].append(float(AUC))
 
 	print("empiesa la funsion")
-	data = (K2, K3, K4)
+	data = (K2, K3, K4, K5)
 	# Create plot
 	fig, ax = plt.subplots()
 	i = 0
-	for color in ['red', 'green', 'blue']:
+	for color in ['red', 'green', 'blue', 'yellow']:
 		y, x = data[i]
 		scale = 200.0 * 0.6
 		ax.scatter(x, y, c=color, label="K"+str(i+2))
