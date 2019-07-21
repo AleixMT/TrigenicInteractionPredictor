@@ -90,4 +90,8 @@ Plot de la mitjana de cada fold
 Fer mitjana de cada probbabilitat a cada sample de cada tripleta testejada. 
 Obtenir una metrica de mediana mitjana per a cada trippeta per a recalcular AUC i held-out likelihood (mitjana)
 Representar cada held-out likelihood mig i AUC mig front K 
+
+Gene ontology (gene ontology slim term mapper)
+
+Biopython 
 '''
