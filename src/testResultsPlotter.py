@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import getopt
 import sys
 import os
+import codecs
+import re
 
 if __name__ == "__main__":
     # Default arguments
@@ -34,14 +36,55 @@ if __name__ == "__main__":
         sys.exit(2)
     except ValueError:
         sys.exit(2)
-
+    data = {}
     for (dirpath, dirnames, filenames) in os.walk(results_folder):
         for f in filenames:
             file_pointer = os.path.join(dirpath, f)
-            k_number = file_pointer.split('/')[-3]
-            fold_number = file_pointer.split('/')[-2]
-            sample_number = file_pointer.split('/')[-1].split('_')[1]
-            print(k_number + fold_number + sample_number)
+            if os.stat(file_pointer).st_size == 0:  # Check if the file is empty
+                continue
+            else:
+                pass
+            k_number, fold_number, sample_number = file_pointer.split('/')[-3:]  # Get the data form the last part of the path
+            sample_number = sample_number.split('_')[1]
+            print("Dades fitxer: " + k_number + fold_number + sample_number)
+            file_handler = codecs.open(file_pointer)
+            line = file_handler.readline()
+
+            while not re.match("Test set:", line):  # Skip lines until find the string pattern "Test set:"
+                line = file_handler.readline()
+            file_handler.readline()  # Skip the line corresponding to the name of each column
+            for line in file_handler.readlines():  # Start reading data test
+                line = line.rstrip()  # strip carry return trailing character at end of the line
+                if not line:  # If we find and empty string, corresponding to the end of the data block
+                    break  # end reading
+                interaction_probability, gene_triplet, real_interaction = line.split('\t')
+                interaction_probability = float(interaction_probability)
+                try:
+                    data[gene_triplet].append(interaction_probability)  # append interaction to the value in the dict
+                except KeyError:  # if it's the first time you see this triplete
+                    data[gene_triplet] = [interaction_probability]
+
+    result_data = {}
+    for key, value in data.items():
+        sum_total = 0
+        for i in value:
+            sum_total += i
+        mean = sum_total / len(value)
+        result_data[key] = [mean]
+        if len(value) % 2:
+            median = value[round(len(value) / 2)]
+        else:
+            median = (value[round(len(value) / 2)] + value[round(len(value) / 2) + 1]) / 2
+        result_data[key].append(median)
+
+    print("\n\n" + str(result_data))
+
+
+
+
+
+
+
 
 
 
