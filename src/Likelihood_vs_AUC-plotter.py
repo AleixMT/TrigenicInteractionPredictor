@@ -9,14 +9,14 @@ import os
 
 if __name__ == "__main__":
 
-	# Create data
+	# Create input_data
 	#os.system(more /media/sf_DEFINITIVE_RESULTS/K*/fold*/Sample* | grep -oP "fold[0-5]/Sample_[0-9]+_K.\.csv|(Held-out Likelihood:\t-[0-9]*\.[0-9]*)|^([0-9]\.[0-9]*\t){3}[0-9]\.[0-9]*")
 	results = []
 
 	for k in range(4):
 		results.append([[[], []], [[],[]], [[], []], [[], []], [[], []]])
 
-	with codecs.open('/home/aleixmt/Desktop/TrigenicInteractionPredictor/data/Filtered_results.csv', encoding='utf-8', mode='r') as fileref:
+	with codecs.open('/home/aleixmt/Desktop/TrigenicInteractionPredictor/input_data/Filtered_results.csv', encoding='utf-8', mode='r') as fileref:
 		while True:
 			line = fileref.readline()
 			if re.match("Sample_[0-9]*", str(line)):

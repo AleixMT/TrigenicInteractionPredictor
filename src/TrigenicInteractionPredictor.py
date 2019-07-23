@@ -6,7 +6,7 @@
 #       																									    #
 # Description: This code tries to predict interaction between genes in Pichia pastoris. We use supplementary    #
 # materials from the article "Systematic analysis of complex genetic interactions"                              #
-# (http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our data.      #
+# (http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our input_data.      #
 # We treat every gene as a node in our network. Links are every assay from the dataset between three genes.     #
 # This links are tagged with 0 or 1 if there is interaction or not.                                             #
 #                                                                                                               #
@@ -14,7 +14,7 @@
 # genes. Every gene has a vector with the length of the number of groups. Every cell in this vector has the     #
 # possibility of a gene behaving like one concrete group.                                                       #
 #                                                                                                               #
-# Permissions: Needs permission to read from data files and to write in the same folder as the script if        #
+# Permissions: Needs permission to read from input_data files and to write in the same folder as the script if        #
 # to_File() method is called.                                                                                   #
 #################################################################################################################
 import getopt
@@ -29,12 +29,12 @@ import math
 import numpy as np
 
 
-# Contains all methods and data structures of the algorithm.
+# Contains all methods and input_data structures of the algorithm.
 class Model:
 
     # Constructor:
     #
-    # Description: Initializes data structures of algorithm.
+    # Description: Initializes input_data structures of algorithm.
 
     def __init__(self):
         # Vectors of probability, that relates the probability of a gene belonging to a determinate group
@@ -56,7 +56,7 @@ class Model:
         self.nlinks = {}
         self.links = {}
 
-        # Same format as the previous dictionary, but we will use this data structure to calculate metrics, and not for
+        # Same format as the previous dictionary, but we will use this input_data structure to calculate metrics, and not for
         # iterations
         self.test_links = {}
 
@@ -66,9 +66,9 @@ class Model:
         # Relates the id gene with its number of interactions
         self.uniqueg = {}
 
-        # Describes how good our model explains our train data
+        # Describes how good our model explains our train input_data
         self.likelihood = 0
-        # Describes how good our model explains our test data
+        # Describes how good our model explains our test input_data
         self.heldoutlikelihood = 0
 
         # Vector of likelihoods
@@ -171,7 +171,7 @@ class Model:
 
     # Method getInput:
     #
-    # Description: Reads data from file in the same folder as this script, selects type of interaction and sets the
+    # Description: Reads input_data from file in the same folder as this script, selects type of interaction and sets the
     # rating of the interaction.
     # All genes will be selected with P-value < 0.05.
     # P is also initialized with the number of genes.
@@ -188,7 +188,7 @@ class Model:
     # 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
     # 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset
     # Return parameters:
-    # Fills with data the next variables: links, nlinks, id_gene, gene_id, P.
+    # Fills with input_data the next variables: links, nlinks, id_gene, gene_id, P.
     #
     # File Format:
     # RAW Dataset S1
@@ -317,7 +317,7 @@ class Model:
             print('Error, file does not exist or can\'t be read')
             print(error)
 
-    # Method that reads input links,nlinks and test_link form train and test files as 2name1_name2_name3\trating
+    # Method that reads input_data links,nlinks and test_link form train and test files as 2name1_name2_name3\trating
     def get_traintest(self, trainfile, testfile):
         try:
             gid = 0
@@ -437,7 +437,7 @@ class Model:
     #
     # PRE: Data that is going to be split is stored in self.links and self.nlinks. self.uniqueg stores apparition of every
     # gene so is coherent with self.links and self.n_links dictionaries.
-    # POST: All internal data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train or
+    # POST: All internal input_data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train or
     # test.
     #
     # Input Parameters:
@@ -637,8 +637,8 @@ class Model:
 
     # Method get_data:
     #
-    # Description: Reads data from a file indicated by argument with the to_string format, and copies it to
-    # the different data structures in the model.
+    # Description: Reads input_data from a file indicated by argument with the to_string format, and copies it to
+    # the different input_data structures in the model.
     def get_data(self, file_name="out0.txt"):
 
         def read_likelihood(file_reference):
@@ -786,7 +786,7 @@ class Model:
 
     # Method tostring:
     #
-    # Description: Returns a CSV-like (using one tab as separator between fields) format string with data from the model
+    # Description: Returns a CSV-like (using one tab as separator between fields) format string with input_data from the model
     # object.
 
     def to_string(self):
@@ -941,7 +941,7 @@ class Model:
 
     # Method computeLikelihood:
     #
-    # Description: Computes likelihood of the current data stored in the object.
+    # Description: Computes likelihood of the current input_data stored in the object.
     #
     # Parameters: Selects
     #
@@ -977,7 +977,7 @@ class Model:
     # npr and ntheta instance variables. Then, new values are normalized.
     #
     # Return Parameters:
-    # Updates and normalizes new values in npr and ntheta data structures.
+    # Updates and normalizes new values in npr and ntheta input_data structures.
 
     def make_iteration(self):
 
@@ -1025,14 +1025,14 @@ class Model:
                     for r in range(self.R):
                         self.npr[i][j][k][r] /= d
 
-        # Copies values from n* data structures to the current structures
+        # Copies values from n* input_data structures to the current structures
         self.theta = copy.copy(self.ntheta)
         for i in range(self.K):
             for j in range(self.K):
                 for k in range(self.K):
                     self.pr[i][j][k] = self.npr[i][j][k]
 
-        # Reinitialization of n * data structures
+        # Reinitialization of n * input_data structures
         for i in range(self.P):
             self.ntheta[i] = [0.] * self.K
         for i in range(self.K):
@@ -1042,7 +1042,7 @@ class Model:
 
     # Method compareDataset(model):
     #
-    # Description: Given another object model, data of links and genes is comparated separately. This information will
+    # Description: Given another object model, input_data of links and genes is comparated separately. This information will
     # be printed in the output.
     #
     # Return parameters:
@@ -1069,7 +1069,7 @@ class Model:
 #
 # Description: Checks that the filtered dataset and the raw dataset are equal. The code in this function is hardcoded
 # and its unique purpose is demonstrate that the selection criteria specified in article is consistent
-# with obtained data from filtering dataset S1 for trigenic interaction.
+# with obtained input_data from filtering dataset S1 for trigenic interaction.
 
 
 def compares1withs2():
@@ -1077,7 +1077,7 @@ def compares1withs2():
     rawmodel.get_input('Data_S1.csv', 'trigenic', -0.08, 1)  # discards negatives for raw dataset
 
     treatedmodel = Model()
-    treatedmodel.get_input('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all data from treated dataset
+    treatedmodel.get_input('Data_S2.csv', 'trigenic', sys.float_info.max)  # take all input_data from treated dataset
 
     treatedmodel.to_file("treated.txt")
     rawmodel.to_file("raw.txt")
@@ -1122,7 +1122,7 @@ def usage(it, s, check, file, k):
     txt += 'can be left blank and the next default values will be selected:\n Number of iterations per sample: ' + str(
         it)
     txt += '\nNumber of samples: ' + str(s) + '\nLikelihood frequency checking: ' + str(
-        check) + '\nData input file: ' + str(file)
+        check) + '\nData input_data file: ' + str(file)
     txt += '\nNumber of groups: ' + str(k)
     txt += '\n\nThis code is optimized to be executed by pypy3. You can find a pypy3 environment in'
     txt += 'the src folder of the project. In a terminal situated in that folder, the execution with pypy3'
@@ -1151,8 +1151,8 @@ if __name__ == "__main__":
     samples = 100
     frequencyCheck = 25
     beginCheck = 100
-    train = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/train0.dat"
-    test = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/test0.dat"
+    train = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/train0.dat"
+    test = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/test0.dat"
     outfilepath = ""
     argk = 2
 
