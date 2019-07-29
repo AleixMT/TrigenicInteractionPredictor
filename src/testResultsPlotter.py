@@ -41,19 +41,19 @@ if __name__ == "__main__":
     input_data = {}
     output = {}
 
-    # Data structure for each input triplete
+    # Data structure for each input triplete. triplete is array[2][4][5][100]
     triplete_data = []
     for i in range(2):
         a = []
         for j in range(4):  # List of 4 positions corresponding to K //HC
             b = []
             for k in range(5):  # List of 5 positions corresponding to each fold
-                c = [0. for _ in range(100)]  # List of 100 positions corresponding to samples //HC
+                c = []  # List of 100 positions corresponding to samples //HC
                 b.append(c)
             a.append(b)
         triplete_data.append(a)
 
-    # Data structure for each ouput triplete
+    # Data structure for each output triplete
     triplete_result = []
     for i in range(4):
         a = []
@@ -62,9 +62,7 @@ if __name__ == "__main__":
             a.append(b)
         triplete_result.append(a)
 
-
-    print(triplete_result)
-    print(triplete_data)
+    # find all the files recursively in the base folder
     for (dirpath, dirnames, filenames) in os.walk(results_folder):
         for f in filenames:
             file_pointer = os.path.join(dirpath, f)
@@ -100,44 +98,49 @@ if __name__ == "__main__":
                 real_interaction = int(real_interaction)
 
                 try:
-                    input_data[gene_triplet][0][int(k_number) - 2][int(fold_number)][int(sample_number)] = interaction_probability  # append interaction to the value in the dict
+                    input_data[gene_triplet][0][int(k_number) - 2][int(fold_number)].append(interaction_probability)  # append interaction to the value in the dict
 
                 except KeyError:  # if it's the first time you see this triplete
                     input_data[gene_triplet] = triplete_data.copy()  # Create data structure
-                    input_data[gene_triplet][0][int(k_number) - 2][int(fold_number)][int(sample_number)] = interaction_probability  # append interaction to the value in the dict
-                input_data[gene_triplet][1][int(k_number) - 2][int(fold_number)][int(sample_number)] = real_interaction  # append interaction to the value in the dict
+                    input_data[gene_triplet][0][int(k_number) - 2][int(fold_number)].append(interaction_probability)  # append interaction to the value in the dict
+                input_data[gene_triplet][1][int(k_number) - 2][int(fold_number)].append(real_interaction)  # append interaction to the value in the dict
 
     print("Data reading finished")
-    # Calculate median and mean for every fold in every k
+    # Calculate median and mean of probabilities of every triplet, for every fold in every k
     for key, value in input_data.items():
         sum_total = 0
         output[key] = triplete_result.copy()
         for k_number in range(len(value[0])):
             for fold_number in range(5):
                 sum_total = 0
+                sum_real = 0
+                print("key " + str(key) + " k " + str(k_number) + " fold " + str(fold_number) + " has:" + str(len(value[0][k_number][fold_number])) + " samples")
                 for sample_number in range(len(value[0][k_number][fold_number])):
                     sum_total += value[0][k_number][fold_number][sample_number]
+                    sum_real += value[1][k_number][fold_number][sample_number]
                 mean = sum_total / len(value[0][k_number][fold_number])
                 output[key][k_number][fold_number][0] = mean
-
+                print("i té de suma " + str(sum_real))
+                #value[1][k_number][fold_number] = sum_real
                 value[0][k_number][fold_number].sort()
-                print(value[0][k_number][fold_number])
                 number_of_samples = len(value[0][k_number][fold_number])
-                print(number_of_samples)
                 if number_of_samples % 2:
                     median = value[0][k_number][fold_number][round(number_of_samples / 2)]
                 else:
                     median = sum(value[0][k_number][fold_number][round(number_of_samples / 2) - 1:round(number_of_samples / 2)]) / 2
                 output[key][k_number][fold_number][1] = median
 
-    file_results = open("Results")
-    file_results.write(str(output))
-    file_results.close()
-    print("fin")
-    for key, value in input_data.items():
-        print("Key: " + key)
-
-
-
-    print(str(len(output)) + " " + str(len(output)))
+    print("writing output")
+    for key, value in output.items():
+        for k_number in range(len(value[0])):
+            for fold_number in range(5):
+                #print("sum real number: " + str(value[1][k_number][fold_number]))
+                output_filename = "K" + str(k_number) + "_fold" + str(fold_number)
+                if os.path.exists(output_filename):
+                    with open(output_filename, 'a') as f:
+                        f.write(str(value[k_number][fold_number][0]) + "\t" + str(key) + "\t" + str(input_data[key][1][k_number][fold_number]) + "\n")
+                else:
+                    with open(output_filename, 'a+') as f:
+                        f.write("Mean Interaction Probability\tGene triplete\tReal interaction\n")
+                        f.write(str(value[k_number][fold_number][0]) + "\t" + str(key) + "\t" + str(input_data[key][1][k_number][fold_number]) + "\n")
 
