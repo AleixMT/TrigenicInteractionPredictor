@@ -1026,7 +1026,7 @@ class Model:
                         self.npr[i][j][k][r] /= d
 
         # Copies values from n* input_data structures to the current structures
-        self.theta = copy.copy(self.ntheta)
+        self.theta = copy.deepcopy(self.ntheta)
         for i in range(self.K):
             for j in range(self.K):
                 for k in range(self.K):
