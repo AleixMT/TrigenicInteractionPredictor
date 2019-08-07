@@ -16,7 +16,7 @@ cd results
 for k in ${arg_k[@]}; do
     mkdir K$k
     cd K$k
-    for ((fold=0; fold<5; fold++)); do
+    for ((fold=0; fold<1; fold++)); do  # TESTING
         mkdir fold$fold
     done
     cd ..
@@ -28,8 +28,10 @@ cd ..
 rm batch_commands.sh
 # Generate commands
 for k in ${arg_k[@]}; do
-    for ((fold=0; fold<5; fold++)); do
-         echo -e $python_interpreter $trigenicInteractionPredictor --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold/ >> batch_commands.sh
+    for ((fold=0; fold<1; fold++)); do
+        for ((sample=0; sample<100; sample++)); do
+            echo -e $python_interpreter $trigenicInteractionPredictor --samples=1 --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold/ >> batch_commands.sh
+        done
     done
 done
 
