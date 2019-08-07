@@ -1150,7 +1150,7 @@ if __name__ == "__main__":
     iterations = 10000
     samples = 100
     frequencyCheck = 25
-    beginCheck = 100
+    beginCheck = 150
     train = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/train0.dat"
     test = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/test0.dat"
     outfilepath = ""
@@ -1268,7 +1268,7 @@ if __name__ == "__main__":
                 if math.fabs((like - like0) / like0) < 0.01:
                     print(
                         "\n\t**************************\n\t* Likelihood has converged *\n\t**************************")
-                    outfile = outfilepath + '/Sample_' + str(sample) + '_K' + str(argk) + '.csv'
+                    outfile = outfilepath + 'Sample_' + str(sample) + '_K' + str(argk) + '.csv'
                     model.to_file(outfile)  # // debug
 
                     break

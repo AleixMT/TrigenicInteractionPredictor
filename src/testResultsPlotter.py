@@ -71,14 +71,15 @@ if __name__ == "__main__":
     for (dirpath, dirnames, filenames) in os.walk(results_folder):
         for f in filenames:
             file_pointer = os.path.join(dirpath, f)
+            # Avoid and show possible casualties
             if os.stat(file_pointer).st_size == 0:  # Check if the file is empty
-                print("Empty file")
+                print("· WARNING! Found empty file ·")
                 continue
             else:
                 if f[-1] == "#":  # check if it's a locked file
-                    print("Found lock file. Skipping...")
+                    print("· WARNING! Found lock file. Skipping... ·")
                     continue  # and skip it if it is in
-                pass
+
             #Get info of each sample using the path to the file
             k_number, fold_number, sample_number = file_pointer.split('/')[-3:]  # Get the input_data form the last part of the path
             k_number = k_number.lstrip("K")
@@ -108,40 +109,13 @@ if __name__ == "__main__":
                 real_interaction = int(real_interaction)
                 if gene_triplet in input_data:
                     input_data[gene_triplet][0][k_number][fold_number].append(interaction_probability)  # append interaction to the value in the dict
-                    input_data[gene_triplet][1].append(real_interaction)  # TESTING
                 else:  # if it's the first time you see this triplete
                     input_data[gene_triplet] = copy.deepcopy(triplete_data)  # CLONE data structure
                     input_data[gene_triplet][0][k_number][fold_number].append(interaction_probability)  # append interaction to the value in the dict
-                    input_data[gene_triplet][1].append(real_interaction)  # TESTING
+                    input_data[gene_triplet][1].append(real_interaction)  # Append just one time //CHECKED
 
-
-    print(input_data["305_804_907"][1])  # TESTING
-    '''
-    input()
-    #print(input_data)
-    #TESTING
-    for key, value in input_data.items():
-        for k_number in range(len(value[0])):
-            for fold_number in range(5):
-                # print("sum real number: " + str(value[1][k_number][fold_number]))
-                output_filename = "K" + str(k_number + 2) + "_fold" + str(fold_number)
-                if os.path.exists(output_filename):
-                    with open(output_filename, 'a') as f:
-                        f.write(str(key) + "\t")
-                        for prob in value[0][k_number][fold_number]:
-                            f.write(str(prob) + "\t")
-                        f.write("\n")
-                else:
-                    with open(output_filename, 'a+') as f:
-                        f.write("Gene triplete\tProb\n")
-                        f.write(str(key) + "\t")
-                        for prob in value[0][k_number][fold_number]:
-                            f.write(str(prob) + "\t")
-                        f.write("\n")
-    # TESTING
-    '''
-    output = {}
     print("· Computing Results ·")
+    output = {}  # Output dictionary that relates triplete with its results (a copy of the variable triplete_results)
     # Calculate median, mean and std. dev. of probabilities of every triplet, for every fold in every k
     for key, value in input_data.items():
         sum_total = 0
@@ -162,11 +136,11 @@ if __name__ == "__main__":
                     # Median
                     value[0][k_number][fold_number].sort()
                     if number_of_samples % 2:  # if not even
-                        median = value[0][k_number][fold_number][round(number_of_samples / 2)]
+                        median = value[0][k_number][fold_number][round(number_of_samples / 2)]  # truncate
+                    # Get the mean of the two elements in the center of the list
                     else:
                         half = int(number_of_samples / 2)
-                        median = sum(value[0][k_number][fold_number][half - 1:half])
-                        print(value[0][k_number][fold_number][half - 1:half])  # TESTING
+                        median = sum(value[0][k_number][fold_number][half - 1:half + 1]) / 2
                     output[key][k_number][fold_number].append(median)
 
                     # Std. Dev.
@@ -179,17 +153,17 @@ if __name__ == "__main__":
     print("· Writing output ·")
     os.system("rm K*")
     for key, value in output.items():
-        for k_number in range(len(value[0])):
-            for fold_number in range(5):
+        for k_number in range(len(value)):
+            for fold_number in range(len(value[k_number])):
                 #print("sum real number: " + str(value[1][k_number][fold_number]))
                 if value[k_number][fold_number]:
                     output_filename = "K" + str(k_number) + "_fold" + str(fold_number)
                     if os.path.exists(output_filename):
                         with open(output_filename, 'a') as f:
                             # Key   Mean    Median  StdDev  Real
-                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1].pop()) + "\n")
+                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1][0]) + "\n")
                     else:
                         with open(output_filename, 'a+') as f:
                             f.write("Triplete\tMean\tMedian\tStdDev\tRealinteraction\n")
-                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1].pop()) + "\n")
+                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1][0]) + "\n")
 

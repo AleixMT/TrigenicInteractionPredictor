@@ -2,11 +2,11 @@
 
 # Generate independent calls to main script in order to run in parallel
 
-python_interpreter='python3'
-trigenicInteractionPredictor='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/src/TrigenicInteractionPredictor.py'
-traintest_datasets_folder='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/'
+python_interpreter='/home/aleixmt/Desktop/pypy3.5-v7.0.0-linux64/bin/pypy3'
+trigenicInteractionPredictor='/home/aleixmt/Desktop/GIT/TrigenicInteractionPredictor/src/TrigenicInteractionPredictor.py'
+traintest_datasets_folder='/home/aleixmt/Desktop/GIT/TrigenicInteractionPredictor/data/folds/'
 output_base_path=''
-arg_k=('2' '3' '4' '5')
+arg_k=('2')
 trainfile_basename='train'
 testfile_basename='test'
 
@@ -29,7 +29,7 @@ rm batch_commands.sh
 # Generate commands
 for k in ${arg_k[@]}; do
     for ((fold=0; fold<5; fold++)); do
-         echo -e $python_interpreter $trigenicInteractionPredictor --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold >> batch_commands.sh
+         echo -e $python_interpreter $trigenicInteractionPredictor --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold/ >> batch_commands.sh
     done
 done
 
