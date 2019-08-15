@@ -1148,34 +1148,40 @@ if __name__ == "__main__":
 
     # Default arguments
     iterations = 10000
-    samples = 100
+    numSamples = 100
+    sampleIni = 0
     frequencyCheck = 25
-    beginCheck = 150
-    train = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/train0.dat"
-    test = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/input_data/folds/test0.dat"
+    beginCheck = 100
+    train = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/train0.dat'
+    test = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/test0.dat'
     outfilepath = ""
     argk = 2
 
     # This method returns value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:s:f:b:o:t:e:k:",
-                                   ["help", "iterations=", "samples=", "fcheck=", "bcheck=", "out=", "train=", "test=", "k="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:n:s:f:b:o:t:e:k:",
+                                   ["help", "iterations=", "numSamples=", "sampleIni=", "fcheck=", "bcheck=", "out=", "train=", "test=", "k="])
 
         for opt, arg in opts:
             if opt in ("-h", "--help"):  # Show the usage if help is called
-                usage(iterations, samples, frequencyCheck, train, argk)
+                usage(iterations, numSamples, frequencyCheck, train, argk)
                 exit(0)
             elif opt in ("-i", "--iterations"):
                 if int(arg) < 1:
                     print("\n\nERROR: Number of iterations should be a integer positive number!")
                     raise ValueError
                 iterations = int(arg)
-            elif opt in ("-s", "--samples"):
+            elif opt in ("-n", "--numSamples"):
                 if int(arg) < 1:
+                    print("\n\nERROR: Number of samples should be a integer positive number")
+                    raise ValueError
+                numSamples = int(arg)
+            elif opt in ("-s", "--sampleIni"):
+                if int(arg) < 0:
                     print("\n\nERROR: Number of samples should be a integer positive number!")
                     raise ValueError
-                samples = int(arg)
+                sampleIni = int(arg)
             elif opt in ("-f", "--fcheck"):
                 if int(arg) < 0:
                     print("\n\nERROR: frequency of checking should be a integer positive number or 0!")
@@ -1218,10 +1224,8 @@ if __name__ == "__main__":
                 argk = int(arg)
 
     except getopt.GetoptError:
-        usage(iterations, samples, frequencyCheck, train, argk)
         sys.exit(2)
     except ValueError:
-        usage(iterations, samples, frequencyCheck, train, argk)
         sys.exit(2)
 
     # Display Warning
@@ -1229,16 +1233,9 @@ if __name__ == "__main__":
         print("\n\nWARNING: the likelihood frequency checking is bigger that the number of iterations per sample.")
         print("likelihood will only be calculated at the end of every sample (equivalent to --check=0 or -c 0)\n")
 
-    num = -1
-    for root, dirs, files in os.walk(outfilepath):
-        for filename in files:
-            if int(filename.split('_')[1]) > num:
-                num = int(filename.split('_')[1])
-
-    print("\n Last sample computed was: " + str(num))
     # Start Algorithm
     msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
-    msg += "**************************\n\nDoing " + str(samples) + " samples of " + str(iterations) + " iterations."
+    msg += "**************************\n\nDoing " + str(numSamples) + " samples of " + str(iterations) + " iterations."
     msg += "\nTrain-file is " + str(train) + "\n Test-file is " + str(test) + "\n Output directory is " + str(outfilepath)
     msg += "\nK value (number of groups) is " + str(argk) + "."
     msg += "\nLikelihood will be computed every " + str(frequencyCheck) + " iterations after iteration number " + str(beginCheck)
@@ -1249,13 +1246,15 @@ if __name__ == "__main__":
 
     print("\nStarting algorithm...")
 
-    for sample in range(num + 1, int(samples)):
+    for sample in range(sampleIni, sampleIni + int(numSamples)):
+        outfile = outfilepath + 'Sample_' + str(sample) + '_K' + str(argk) + '.csv'
+        if os.path.isfile(outfile):
+            continue
         print("Sample " + str(sample) + ":")
         model.initialize_parameters(argk)
         print("Parameters have been initialized")
         like0 = model.compute_likelihood()
         print("· Initial Likelihood is " + str(like0))
-        model.vlikelihood.append([sample, 0, like0])  # append result into the global vector of likelihoods
 
         for iteration in range(iterations):
             model.make_iteration()
@@ -1263,12 +1262,10 @@ if __name__ == "__main__":
             if iteration % frequencyCheck == 0 and iteration > beginCheck:
                 like = model.compute_likelihood()
                 print("· Likelihood " + str(iteration + 1) + " is " + str(like))
-                model.vlikelihood.append(
-                    [sample, iteration + 1, like])  # append result into the global vector of likelihoods
+
                 if math.fabs((like - like0) / like0) < 0.01:
                     print(
                         "\n\t**************************\n\t* Likelihood has converged *\n\t**************************")
-                    outfile = outfilepath + 'Sample_' + str(sample) + '_K' + str(argk) + '.csv'
                     model.to_file(outfile)  # // debug
 
                     break
