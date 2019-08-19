@@ -437,7 +437,7 @@ class Model:
     #
     # PRE: Data that is going to be split is stored in self.links and self.nlinks. self.uniqueg stores apparition of every
     # gene so is coherent with self.links and self.n_links dictionaries.
-    # POST: All internal input_data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train or
+    # POST: All internal input_data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train and
     # test.
     #
     # Input Parameters:

@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # Default arguments
     results_folder = "/media/_Shared/DEFINITIVE_RESULTS"
 
-    # This method returns value consisting of two elements: the first is a list of (option, value) pairs.
+    # This block returns a value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
     try:
         opts, args = getopt.getopt(sys.argv[1:], "f:", ["folder="])
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                     print("· WARNING! Found lock file. Skipping... ·")
                     continue  # and skip it if it is in
 
-            #Get info of each sample using the path to the file
+            # Get info of each sample using the path to the file
             k_number, fold_number, sample_number = file_pointer.split('/')[-3:]  # Get the input_data form the last part of the path
             k_number = k_number.lstrip("K")
             fold_number = fold_number.lstrip("fold")
@@ -98,12 +98,10 @@ if __name__ == "__main__":
 
             # Start reading input_data test
             for line in file_handler.readlines():
-                #print(line)  # Testing
                 line = line.rstrip('\n')  # strip carry return trailing character at end of the line
                 if not line:  # If we find and empty string, corresponding to the end of the input_data block
                     break  # end reading
                 interaction_probability, gene_triplet, real_interaction = line.split('\t')  # Get the data of each line
-                #print("Gene triplete" + gene_triplet + " has " + interaction_probability + "prob. ")
 
                 interaction_probability = float(interaction_probability)
                 real_interaction = int(real_interaction)
@@ -155,9 +153,8 @@ if __name__ == "__main__":
     for key, value in output.items():
         for k_number in range(len(value)):
             for fold_number in range(len(value[k_number])):
-                #print("sum real number: " + str(value[1][k_number][fold_number]))
                 if value[k_number][fold_number]:
-                    output_filename = "K" + str(k_number) + "_fold" + str(fold_number)
+                    output_filename = results_folder + "/K" + str(k_number + 2) + "_fold" + str(fold_number) + ".csv"
                     if os.path.exists(output_filename):
                         with open(output_filename, 'a') as f:
                             # Key   Mean    Median  StdDev  Real
@@ -166,4 +163,26 @@ if __name__ == "__main__":
                         with open(output_filename, 'a+') as f:
                             f.write("Triplete\tMean\tMedian\tStdDev\tRealinteraction\n")
                             f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1][0]) + "\n")
+
+    print("· Sorting output ·")
+    sorted_output = []
+    for k_number in (2, 3, 4, 5):
+        for fold_number in range(5):
+            with open(results_folder + "/K" + str(k_number) + "_fold" + str(fold_number) + ".csv") as f:
+                sorted_output = []
+                f.readline()
+                for line in f.readlines():
+                    fields = line.split('\t')
+                    fields[1] = float(fields[1])
+                    sorted_output.append(fields)
+                sorted_output.sort(key=lambda tup: tup[1])  # sorts in place
+                sorted_output.reverse()
+
+            
+            with open(results_folder + "/K" + str(k_number) + "_fold" + str(fold_number) + ".csv", 'w') as f:
+                f.write("Triplete\tMean\tMedian\tStdDev\tRealinteraction\n")
+                for line in sorted_output:
+                    f.write(str(line[0]) + "\t" + str(line[1]) + "\t" + str(line[2]) + "\t" + str(line[3]) + "\t" + str(line[4]) + "\n")
+
+
 
