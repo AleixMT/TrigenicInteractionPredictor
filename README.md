@@ -1,5 +1,5 @@
-# TrigenicInteractionPredictor
-Algorithm that predicts interaction between triplets of genes.
+# Trigenic Interaction Predictor
+Algorithm that predicts interaction between triplets of genes using Mixed-Membership Stochastic Block Model.
 
 ## Description
 
