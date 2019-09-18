@@ -18,10 +18,10 @@ To determine how lethal the supression of genes can be, we measure the size of t
 
 ## Types of genetic interaction
 We will consider two main types of interaction:
-1.- Negative genetic interaction: Occurs when a combination of mutations leads to a fitness defect that is more exacerbated than expected. 
- * Synthetic lethality occurs when two non-letal mutations generate a non-viable mutant when combined.
-2.- Positive genetic interaction: Occurs when a combination of mutations leads to a fitness greater than expected.
- * Genetic suppression: Occurs when the mutations in the fitness defect of a query mutant is alleviated by a mutation in a second gene. 
+1. **Negative genetic interaction**: Occurs when a combination of mutations leads to a fitness defect that is more exacerbated than expected. 
+     - Synthetic lethality: Occurs when two non-letal mutations generate a non-viable mutant when combined.
+2. **Positive genetic interaction**: Occurs when a combination of mutations leads to a fitness greater than expected.
+     - Genetic suppression: Occurs when the mutations in the fitness defect of a query mutant is alleviated by a mutation in a second gene. 
 
 ## Algorithm
 ##### Training
