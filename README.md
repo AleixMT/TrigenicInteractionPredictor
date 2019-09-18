@@ -1,55 +1,43 @@
 # Trigenic Interaction Predictor
 Algorithm that predicts interaction between triplets of genes using Mixed-Membership Stochastic Block Model.
-
-## Description
-
-Genetic interactions occur when mutations in different genes combine to result in a phenotype that is different from expected when observed in different individuals. In other words, when the phenotype of an individual that has two different mutations is significable different from the phenotype of an individual with one or the other mutation individiually, it has occured a genetic interaction.
 * This algorithm applies the model Mixed-Membership [Stochastic Block Model](https://en.wikipedia.org/wiki/Stochastic_block_model) (MMSBM) to predict interaction between tripletes of genes in [Pichia pastoris](https://en.wikipedia.org/wiki/Pichia_pastoris). 
-* We use supplementary materials from the article [Systematic analysis of complex genetic interactions"](http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our data.
-* These materials can be found [here](https://www.dropbox.com/sh/4wblbdwzy4bki53/AACM46GqkfJmzS7iekKcG4Wba?dl=0). Nevertheless, they will move soon to git lfs in order to have the datasets more available.
+* We use supplementary materials from the article [Systematic analysis of complex genetic interactions"](http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our datasets. These datasets can also be found in the `doc/` folder in this repository and can be fetched using [git-lfs](https://git-lfs.github.com/).
+* The main code is written is Python3 and can be run using the standard interpreter, but for optimization purposes we recommend to use [pypy3](https://pypy.org/) for [Ubuntu Linux x64](https://bitbucket.org/pypy/pypy/downloads/pypy3.6-v7.1.1-linux64.tar.bz2).
+* The training algorithm is written in parallel using [GNU-parallel](https://www.gnu.org/software/parallel/).
+
+## Introduction
+Genetic interactions occur when two or more mutations in different genes combine to result in a phenotype that is different from the expected phenotype when these mutations are tested separately in different individuals. 
+
+For example, let A and B be the only two genes present in *Pichia pastoris* (*P. pastoris*) that code for an enzyme responsible of a limitant step in a vital pathway. When the gene A is non-functional or missing due to a mutation, gene B can replace gene A's function and vice versa. This process allows *P. pastoris* to grow even when some vital genes are deleted. Consequently, the phenotype when A and B are deleted in different individuals is **non-lethal**.
+
+But if we delete gene A and B in the same individual, we will find that the phenotype is **lethal** because *P. pastoris* will not be able to grow up, because there is no gene this time that can replace the function of the lost vital genes.
+
+Knowing all the above we can realise that A and B are interacting because when deleted in the same individual the obtained phenotype (lethal) is different than the obtained phenotype when the deletions occur in separated individuals. 
+
+To determine how lethal the supression of genes can be, we measure the size of the colony resulting from a individual containing the suppressions that we want to study. The relation between the real and expected size of the colony is what we call **fitness** and allows us to determine if there is an interaction between genes and what type of interaction is it.
+
+## Types of genetic interaction
+We will consider two main types of interaction:
+1.- Negative genetic interaction: Occurs when a combination of mutations leads to a fitness defect that is more exacerbated than expected. 
+ * Synthetic lethality occurs when two non-letal mutations generate a non-viable mutant when combined.
+2.- Positive genetic interaction: Occurs when a combination of mutations leads to a fitness greater than expected.
+ * Genetic suppression: Occurs when the mutations in the fitness defect of a query mutant is alleviated by a mutation in a second gene. 
 
 ## Algorithm
-
-The main program has many steps:
+##### Training
+The training part has many steps:
 1.- The algorithm gets the input data and digests it:
   * Every gene is a node in the network. 
-  * Links are every assay between three genes.
-    * This links are tagged with 0 or 1 if there is interaction or not.  
-2.- Many data structures are initialized with the input:
+  * Links are every assay between three genes and are tagged with 0 or 1 if there is interaction or not.  
+2.- Many data structures are randomly initialized:
   * 2D-Matrix where every gene has its vector of possibilities of behaving like one of the groups of genes.
   * 3D-Matrix where every group of genes has a matrix of possibilities of interact with the other two group of genes.
-3.- The algorithm starts to iterate to get the maximization of the likelihood.
-4.- If gets the covergement a message will be shown.
-5.- All the data from the execution will be saved automatically for every sample even if it doesn't converge.
+3.- The algorithm starts to iterate applying our model to maximize the **likelihood** parameter. This parameter describes how good our data model fits our experimental data.
+4.- When likelihood is high enough, the program will stop iterating and will save all the data from the model. 
+5.- The program will repeat step 2, 3 and 4 until the number of desired samples is completed.
 
 ## Usage
-
-To execute the code and speeding it up you'll use a **pypy3** virtual environment. There's one uploaded in the repository in the folder `src/`. To execute it open a terminal and situate it in the `src` folder. Then type, for executing the algorithm with the default options:
-```
-pypy3-v6.0.0-linux64/bin/pypy3 TrigenicInteractionPredictor.py
-```
-These default arguments are:
-* iterations = 1000
-* samples = 1
-* frequencyCheck = 1
-* filename = "Data_S1.csv"
-* interactionType = "trigenic"
-* cutOffValue = -0.08
-* argk = 10
-
-You can use other arguments, specifying **_all_** of them after the text that executes the program:
-1.- iterations[positive integer]: Number of iterations done by algorithm.
-2.- samples[positive integer]: Number of samples done by algorithm.
-3.- frequencyCheck[positive integer] Number of iterations needed to check if likelihood has converged.
-4.- filename[string]: Name of the dataset filename.
-5.- interactionType[string:{Trigenic,Digenic,\*}]: Type of interaction selected.
-6.- cutOffValue[real]: Value used to determine if an interaction is positive or negative.
-7.- argk[integer]: Number of groups to use in the algorithm (Increases lineally the computation cost).
-
-For example:
-```
-pypy3-v6.0.0-linux64/bin/pypy3 TrigenicInteractionPredictor.py 1000 5 10 Data_S1.csv Trigenic -0.08
-```
+REBUILDING
 
 ## Code Health
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/51cacbf196634b1f81521e09bfdc9617)](https://www.codacy.com/app/AleixMT/TrigenicInteractionPredictor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=AleixMT/TrigenicInteractionPredictor&amp;utm_campaign=Badge_Grade)
