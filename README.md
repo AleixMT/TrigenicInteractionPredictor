@@ -26,15 +26,15 @@ We will consider two main types of interaction:
 ## Algorithm
 ##### Training
 The training part has many steps:
-1.- The algorithm gets the input data and digests it:
-  * Every gene is a node in the network. 
-  * Links are every assay between three genes and are tagged with 0 or 1 if there is interaction or not.  
-2.- Many data structures are randomly initialized:
-  * 2D-Matrix where every gene has its vector of possibilities of behaving like one of the groups of genes.
-  * 3D-Matrix where every group of genes has a matrix of possibilities of interact with the other two group of genes.
-3.- The algorithm starts to iterate applying our model to maximize the **likelihood** parameter. This parameter describes how good our data model fits our experimental data.
-4.- When likelihood is high enough, the program will stop iterating and will save all the data from the model. 
-5.- The program will repeat step 2, 3 and 4 until the number of desired samples is completed.
+1. The algorithm gets the input data and digests it:
+   - Every gene is a node in the network. 
+   - Links are every assay between three genes and are tagged with 0 or 1 if there is interaction or not.  
+2. Many data structures are randomly initialized:
+   - 2D-Matrix where every gene has its vector of possibilities of behaving like one of the groups of genes.
+   - 3D-Matrix where every group of genes has a matrix of possibilities of interact with the other two group of genes.
+3. The algorithm starts to iterate applying our model to maximize the **likelihood** parameter. This parameter describes how good our data model fits our experimental data.
+4. When likelihood is high enough, the program will stop iterating and will save all the data from the model. 
+5. The program will repeat step 2, 3 and 4 until the number of desired samples is completed.
 
 ## Usage
 REBUILDING
