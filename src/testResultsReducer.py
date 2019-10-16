@@ -20,7 +20,7 @@ import math
 
 if __name__ == "__main__":
     # Default arguments
-    results_folder = "/media/_Shared/DEFINITIVE_RESULTS"
+    results_folder = "/home/aleixmt/Escritorio/DEFINITIVE_RESULTS/"
 
     # This block returns a value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
@@ -65,7 +65,7 @@ if __name__ == "__main__":
             b = []  # Will be a list of 3 positions, corresponding to mean median and std. desviation
             a.append(b)
         triplete_result.append(a)
-
+    likelihoods = copy.deepcopy(triplete_result)
     # find all the files recursively in the base folder
     print("· Start reading files ·")
     for (dirpath, dirnames, filenames) in os.walk(results_folder):
@@ -92,6 +92,9 @@ if __name__ == "__main__":
             # Start reading the file
             file_handler = codecs.open(file_pointer)
             line = file_handler.readline()
+            while not re.match("Held-out Likelihood", line):
+                line = file_handler.readline()
+            likelihoods[k_number][fold_number].append(float(line.split('\t')[1]))
             while not re.match("Test set:", line):  # Skip lines until find the string pattern "Test set:"
                 line = file_handler.readline()
             file_handler.readline()  # Skip the line corresponding to the name of each column
@@ -112,7 +115,7 @@ if __name__ == "__main__":
                     input_data[gene_triplet][0][k_number][fold_number].append(interaction_probability)  # append interaction to the value in the dict
                     input_data[gene_triplet][1].append(real_interaction)  # Append just one time //CHECKED
 
-    print("· Computing Results ·")
+    print("· Reducing results ·")
     output = {}  # Output dictionary that relates triplete with its results (a copy of the variable triplete_results)
     # Calculate median, mean and std. dev. of probabilities of every triplet, for every fold in every k
     for key, value in input_data.items():
@@ -133,7 +136,7 @@ if __name__ == "__main__":
 
                     # Median
                     value[0][k_number][fold_number].sort()
-                    if number_of_samples % 2:  # if not even
+                    if number_of_samples % 2:  # if uneven
                         median = value[0][k_number][fold_number][round(number_of_samples / 2)]  # truncate
                     # Get the mean of the two elements in the center of the list
                     else:
@@ -148,41 +151,94 @@ if __name__ == "__main__":
                     stdDev = math.sqrt(sum_square_diff / (len(value[0][k_number][fold_number]) - 1))
                     output[key][k_number][fold_number].append(stdDev)
 
-    print("· Writing output ·")
+    for k_number in range(len(likelihoods)):
+        for fold_number in range(len(likelihoods[k_number])):
+            likelihoods[k_number][fold_number] = float(sum(likelihoods[k_number][fold_number]) / len(likelihoods[k_number][fold_number]))
+
+    print("· Remapping output ·")
+    triplete_result_sorted = copy.deepcopy(triplete_result)
     os.system("rm K*")
     for key, value in output.items():
         for k_number in range(len(value)):
             for fold_number in range(len(value[k_number])):
                 if value[k_number][fold_number]:
-                    output_filename = results_folder + "/K" + str(k_number + 2) + "_fold" + str(fold_number) + ".csv"
-                    if os.path.exists(output_filename):
-                        with open(output_filename, 'a') as f:
-                            # Key   Mean    Median  StdDev  Real
-                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1][0]) + "\n")
+                    triplete_result_sorted[k_number][fold_number].append([key, value[k_number][fold_number][0], value[k_number][fold_number][1], value[k_number][fold_number][2], input_data[key][1][0]])
+
+    print("· Compute metrics ·")
+    positive_training_density = [0., 0., 0., 0., 0.]
+    for fold_number in range(5):
+        numPositives = 0
+        counter = 0
+        with open("../data/DATA_FOLDS/train" + str(fold_number) + ".dat", 'r') as f:
+            for line in f.readlines():
+                print("lineasplit " + str(line.split('\t')[1]))
+                counter += 1
+                if int(line.split('\t')[1]):
+                    print("entra amb " + str(counter) + " " + str(numPositives))
+                    numPositives += 1
+        print(str(counter) + " " + str(numPositives))
+        positive_training_density[fold_number] = float(numPositives) / float(counter) # Obtain fraction of positives present in each training fold
+        print("densityt " + str(positive_training_density[fold_number]))
+
+    for k_number in range(len(triplete_result_sorted)):
+        for fold_number in range(len(triplete_result_sorted[k_number])):
+            # AUC metric
+            triplete_result_sorted[k_number][fold_number].sort(key=lambda tup: tup[1])
+            triplete_result_sorted.reverse()
+            predictedNumberOfPositivesTest = int(positive_training_density[fold_number] * len(triplete_result_sorted[k_number][fold_number]))
+            print(str(positive_training_density[fold_number]) + " " + str(len(triplete_result_sorted[k_number][fold_number])) + " " + str(predictedNumberOfPositivesTest))
+            counter = 0
+            cutValue = 0
+            for record in triplete_result_sorted[k_number][fold_number]:
+                if predictedNumberOfPositivesTest == counter:
+                    cutValue = record[1]
+                    break
+                counter += 1
+
+            positives = []
+            negatives = []
+            counter = 0
+            for record in triplete_result_sorted[k_number][fold_number]:
+                if record[4]:  # record[4] is real interaction of the triplete
+                    positives.append(record)
+                else:
+                    negatives.append(record)
+
+            for positive in positives:
+                for negative in negatives:
+                    if positive[1] > negative[1]:  # Compare predicted probabilities
+                        counter += 1
+            auc = counter / (len(positives) * len(negatives))
+
+            # Held-out likelihood
+            heldoutLikelihood = 0.
+            for sample in triplete_result_sorted[k_number][fold_number]:
+                heldoutLikelihood += math.log(sample[1])  # likeli = sum(log(predicted)
+
+            # precision, fallout, recall
+            true_positives, false_positives, false_negatives, true_negatives = 0, 0, 0, 0
+            for sample in triplete_result_sorted[k_number][fold_number]:
+                predicted = sample[1]
+                real = sample[4]
+                if predicted >= cutValue:
+                    if real:
+                        true_positives += 1
                     else:
-                        with open(output_filename, 'a+') as f:
-                            f.write("Triplete\tMean\tMedian\tStdDev\tRealinteraction\n")
-                            f.write(str(key) + "\t" + str(value[k_number][fold_number][0]) + "\t" + str(value[k_number][fold_number][1]) + "\t" + str(value[k_number][fold_number][2]) + "\t" + str(input_data[key][1][0]) + "\n")
+                        false_positives += 1
+                else:
+                    if real:
+                        false_negatives += 1
+                    else:
+                        true_negatives += 1
 
-    print("· Sorting output ·")
-    sorted_output = []
-    for k_number in (2, 3, 4, 5):
-        for fold_number in range(5):
-            with open(results_folder + "/K" + str(k_number) + "_fold" + str(fold_number) + ".csv") as f:
-                sorted_output = []
-                f.readline()
-                for line in f.readlines():
-                    fields = line.split('\t')
-                    fields[1] = float(fields[1])
-                    sorted_output.append(fields)
-                sorted_output.sort(key=lambda tup: tup[1])  # sorts in place
-                sorted_output.reverse()
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            fallout = false_positives / (false_positives + true_negatives)
+            with open(results_folder + "K" + str(k_number + 2) + "_fold" + str(fold_number) + ".csv", 'a+') as f:
+                f.write("\nHeld-OutLikelihood\tAUC\tPrecision\tRecall\tFallout\n")
+                f.write(str(likelihoods[k_number][fold_number]) + '\t' + str(auc) + '\t' + str(precision) + '\t' + str(recall) + '\t' + str(fallout) + '\n')
+                f.write("\nTriplete\tMean\tMedian\tStdDev\tRealinteraction\n")
+                for sample in triplete_result_sorted[k_number][fold_number]:
 
-            
-            with open(results_folder + "/K" + str(k_number) + "_fold" + str(fold_number) + ".csv", 'w') as f:
-                f.write("Triplete\tMean\tMedian\tStdDev\tRealinteraction\n")
-                for line in sorted_output:
-                    f.write(str(line[0]) + "\t" + str(line[1]) + "\t" + str(line[2]) + "\t" + str(line[3]) + "\t" + str(line[4]) + "\n")
-
-
+                    f.write(str(sample[0]) + '\t' + str(sample[1]) + '\t' + str(sample[2]) + '\t' + str(sample[3]) + '\t' + str(sample[4]) + '\n')
 
