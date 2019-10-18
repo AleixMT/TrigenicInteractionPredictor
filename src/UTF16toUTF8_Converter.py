@@ -25,4 +25,4 @@ try:
     datasetutf8.close()
     datasetutf16.close()
 except IOError as e:
-    print "I/O error({0}): {1}".format(e.errno, e.strerror)
+    print("I/O error({0}): {1}".format(e.errno, e.strerror))
