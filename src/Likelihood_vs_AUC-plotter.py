@@ -3,12 +3,11 @@
 
 import matplotlib.pyplot as plt
 import codecs
-import re
 
 resultsFolder = "../data/REDUCED_TRAIN_TEST_RESULTS/"
 
 results = []
-for i in range(4):   # List of 4 positions corresponding to each K //HC
+for i in range(4):  # List of 4 positions corresponding to each K //HC
 	a = []
 	for j in range(5):  # List of 5 positions corresponding to each fold.
 		b = []  # Will be a list of 2 positions, likelihood and AUC
@@ -24,17 +23,34 @@ for k in range(4):
 			fields = line.split('\t')
 			HeldOutLikelihood = float(fields[0])
 			AUC = float(fields[1])
-			results[int(k) + 2][fold].append(AUC)
-			results[int(k) + 2][fold].append(HeldOutLikelihood)
+			results[int(k)][fold].append(AUC)
+			results[int(k)][fold].append(HeldOutLikelihood)
 
 # Create plot
 fig, ax = plt.subplots()
-i = 0
-for color in ['red', 'green', 'blue', 'yellow']:
-	y, x = data[i]
-	scale = 10.0 * 0.1
-	ax.scatter(x, y, c=color, label="K"+str(i+2), s=4)
-	i = i + 1
+
+colors = ('black', 'red', 'blue', 'purple')
+markers = ('.', 's', 'p', 'P', 'd')
+
+for k in range(4):
+	x, y = results[k][0]
+	ax.scatter(x, y, c=colors[k], marker=markers[0], label="K" + str(int(k) + 2), s=40)
+
+for fold in range(5):
+	x, y = results[0][fold]
+	ax.scatter(x, y, c=colors[0], marker=markers[fold], label="fold " + str(fold), s=40)
+
+for k in range(1, 4):
+	for fold in range(1, 5):
+		x, y = results[k][fold]
+		if fold == 0:
+			ax.scatter(x, y, c=colors[k], marker=markers[fold], s=40)
+		elif k == 0:
+			ax.scatter(x, y, c=colors[k], marker=markers[fold], s=40)
+		else:
+			ax.scatter(x, y, c=colors[k], marker=markers[fold], s=40)
+
+
 
 plt.title('Likelihood vs AUC')
 plt.legend()
