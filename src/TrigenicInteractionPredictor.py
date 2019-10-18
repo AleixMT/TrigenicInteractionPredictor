@@ -943,7 +943,7 @@ class Model:
     #
     # Description: Computes likelihood of the current input_data stored in the object.
     #
-    # Parameters: Selects
+    # Parameters: Selects between compute Likelihood (train set) or compute Held-Out Likelihood
     #
     # Return Parameters:
     # 1.- Returns the likelihood.

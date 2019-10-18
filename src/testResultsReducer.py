@@ -73,7 +73,6 @@ if __name__ == "__main__":
     for i in range(5):
         listGeneCodetoGeneName.append([])
 
-    print(listGeneCodetoGeneName)
     testCounter = 0
     for (dirpath, dirnames, filenames) in os.walk(results_folder):
         for f in filenames:
@@ -99,22 +98,21 @@ if __name__ == "__main__":
             # Start reading the file
             # Begin with restoring a list that relates the gene number with the name of the gene
             file_handler = codecs.open(file_pointer)
-            line = file_handler.readline()
-            while not re.match("LIST OF REGISTERED GENES", line):
-                line = file_handler.readline()
-            file_handler.readline()  # Skip the line corresponding to the name of each column
-            line = ""
             if not listGeneCodetoGeneName[fold_number]:  # We restore the list only one time per each fold
+                line = file_handler.readline()
+                while not re.match("LIST OF REGISTERED GENES", line):
+                    line = file_handler.readline()
+                file_handler.readline()  # Skip the line corresponding to the name of each column
+
                 line = file_handler.readline()  # Load first set of values
-                line = line.rstrip('\n')  # strip carry return trailing character at end of the line
                 while line:
                     fields = line.split("\t")
                     listGeneCodetoGeneName[fold_number].append(fields[1])
                     line = file_handler.readline()         # Load next set of values
-                    line = line.rstrip('\n')  # strip carry return trailing character at end of the line
+                    line = line.rstrip('\n')
+                file_handler.seek(0)  # Reload file
 
             # Read test result data and translate gene names
-            file_handler = codecs.open(file_pointer)  # Reload file
             line = file_handler.readline()
             while not re.match("Held-out Likelihood", line):
                 line = file_handler.readline()
@@ -122,11 +120,9 @@ if __name__ == "__main__":
             while not re.match("Test set:", line):  # Skip lines until find the string pattern "Test set:"
                 line = file_handler.readline()
             file_handler.readline()  # Skip the line corresponding to the name of each column
-            line = ""
             # Start reading input_data test
-            while not line:
+            while line:
                 line = file_handler.readline()
-                print(line)
                 line = line.rstrip('\n')  # strip carry return trailing character at end of the line
                 if not line:  # If we find and empty string, corresponding to the end of the input_data block
                     break  # end reading
@@ -134,9 +130,6 @@ if __name__ == "__main__":
                 interaction_probability = float(interaction_probability)
                 real_interaction = int(real_interaction)
 
-                if "307_532_78".__eq__(gene_triplet):
-                    testCounter += 1
-                    print(testCounter)
                 geneNames = []
                 for gene in gene_triplet.split("_"):
                     geneNames.append(listGeneCodetoGeneName[fold_number][int(gene)])
@@ -152,6 +145,7 @@ if __name__ == "__main__":
                     input_data[geneNames][0][k_number][fold_number].append(
                         interaction_probability)  # append interaction to the value in the dict
                     input_data[geneNames][1].append(real_interaction)  # Append just one time
+            file_handler.close()
 
     print("· Reducing results ·")
     output = {}  # Output dictionary that relates triplete with its results (a copy of the variable triplete_results)
@@ -163,16 +157,10 @@ if __name__ == "__main__":
             for fold_number in range(len(value[0][k_number])):
                 # Every triplete appears only in one fold
                 if value[0][k_number][fold_number]:  # enter if there are samples
-                    print(key)
-                    print(k_number)
-                    print(fold_number)
-
-                    print(value[0][k_number][fold_number])
                     # Mean
                     sum_total = 0
                     sum_real = 0
                     number_of_samples = len(value[0][k_number][fold_number])
-                    print(number_of_samples)
                     for sample_number in range(number_of_samples):
                         sum_total += value[0][k_number][fold_number][sample_number]
                     mean = sum_total / number_of_samples
@@ -198,16 +186,14 @@ if __name__ == "__main__":
     for k_number in range(len(likelihoods)):
         for fold_number in range(len(likelihoods[k_number])):
             mean_likelihood = float(sum(likelihoods[k_number][fold_number]) / len(likelihoods[k_number][fold_number]))
-            likelihoods[k_number][int(fold_number)] = mean_likelihood
+            likelihoods[k_number][fold_number] = mean_likelihood
 
     print("· Remapping output ·")
     triplete_result_sorted = copy.deepcopy(triplete_result)
-    print("ouputteee " + str(output))
     for key, value in output.items():
         for k_number in range(len(value)):
             for fold_number in range(len(value[k_number])):
                 if value[k_number][fold_number]:
-
                     triplete_result_sorted[k_number][fold_number].append([key, value[k_number][fold_number][0], value[k_number][fold_number][1], value[k_number][fold_number][2], input_data[key][1][0]])
 
     print("· Compute metrics ·")
@@ -222,18 +208,14 @@ if __name__ == "__main__":
                     numPositives += 1
         positive_training_density[fold_number] = float(numPositives) / float(counter) # Obtain fraction of positives present in each training fold
 
-    print(positive_training_density)
-    print(triplete_result_sorted)
     for k_number in range(len(triplete_result_sorted)):
         for fold_number in range(len(triplete_result_sorted[k_number])):
             # AUC metric
-            triplete_result_sorted[k_number][fold_number].sort(key=lambda tup: tup[2])  # Sort using the value of mean probability of interaction
-            print(triplete_result_sorted[k_number][fold_number])
+            triplete_result_sorted[k_number][fold_number].sort(key=lambda tup: tup[1], reverse=True)  # Sort using the value of mean probability of interaction
             predictedNumberOfPositivesTest = int(positive_training_density[fold_number] * len(triplete_result_sorted[k_number][fold_number]))
             counter = 0
             cutValue = 0
 
-            print(triplete_result_sorted[0][0])
             for record in triplete_result_sorted[k_number][fold_number]:
                 if predictedNumberOfPositivesTest == counter:
                     cutValue = record[1]
@@ -255,11 +237,6 @@ if __name__ == "__main__":
                         counter += 1
             auc = counter / (len(positives) * len(negatives))
 
-            # Held-out likelihood
-            heldoutLikelihood = 0.
-            for sample in triplete_result_sorted[k_number][fold_number]:
-                heldoutLikelihood += math.log(sample[1])  # likeli = sum(log(predicted)
-
             # precision, fallout, recall
             true_positives, false_positives, false_negatives, true_negatives = 0, 0, 0, 0
             for sample in triplete_result_sorted[k_number][fold_number]:
@@ -280,7 +257,7 @@ if __name__ == "__main__":
             recall = true_positives / (true_positives + false_negatives)
             fallout = false_positives / (false_positives + true_negatives)
             with open("/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/REDUCED_TRAIN_TEST_RESULTS/" + "K" + str(k_number + 2) + "_fold" + str(fold_number) + ".csv", 'w+') as f:
-                f.write("\nHeld-OutLikelihood\tAUC\tPrecision\tRecall\tFallout\n")
+                f.write("\nHeld-OutLikelihoodMean\tAUCmean\tPrecision\tRecall\tFallout\n")
                 f.write(str(likelihoods[k_number][fold_number]) + '\t' + str(auc) + '\t' + str(precision) + '\t' + str(recall) + '\t' + str(fallout) + '\n')
                 f.write("\nTripleteName\tMean\tMedian\tStdDev\tRealinteraction\n")
                 for sample in triplete_result_sorted[k_number][fold_number]:
