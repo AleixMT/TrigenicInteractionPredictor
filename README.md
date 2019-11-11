@@ -18,7 +18,7 @@ But if we delete gene A and B in the same individual, we will find that the phen
 
 Knowing all the above we can realise that gene A and B are interacting because when deleted in the same individual the obtained phenotype (lethal) is different than the obtained phenotype when the deletions occur in separated individuals. 
 
-To determine how lethal the supression of genes can be, we measure the size of the colony resulting from a individual containing the suppressions that we want to study. The relation between the real and expected size of the colony is what we call **fitness** and allows us to determine if there is an interaction between genes and what type of interaction is it.
+To determine how lethal the supression of genes can be, we measure the size of the colony resulting from a individual containing the suppressions that we want to study. The relation between the real and expected size of the colony is what we call **fitness** and along ith our mathematical model allows us to determine if there is an interaction between genes and what type of interaction is it.
 
 ## Types of genetic interaction
 We will consider two main types of interaction:
@@ -28,11 +28,19 @@ We will consider two main types of interaction:
      - Genetic suppression: Occurs when the mutations in the fitness defect of a query mutant is alleviated by a mutation in a second gene. 
 
 ## Algorithm
+Our algorithm consists of two different coupled parts: training and testing. In the training we show a part of our data set to the algorithm so it is able to learn from it. In the testing we check how good our algorithm does its predictions about a part of the dataset that has not been never seen by the algorithm before.
+
+In order to use this two parts the script must be run using the *fold(...)* method before doing anything. This will split our data set in five different chunks in which we will use [k-fold crossed validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics)) in order to cross-validate the algorithm.
+
+After the split is done, you can run the algorithm using as input one of the data chunks that the method split has created to train the algorithm and the corresponding chunk to do the testing, consecutively.
+
+
+
 ##### Training
 The training part has many steps:
 1. The algorithm gets the input data and digests it:
    - Every gene is a node in the network. 
-   - Links are every assay between three genes and are tagged with 0 or 1 if there is interaction or not.  
+   - Links are every assay between three genes and are tagged with 0 or 1 if there is interaction or not.
 2. Many data structures are randomly initialized:
    - 2D-Matrix where every gene has its vector of possibilities of behaving like one of the groups of genes.
    - 3D-Matrix where every group of genes has a matrix of possibilities of interact with the other two group of genes.
