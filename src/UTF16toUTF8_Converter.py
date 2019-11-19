@@ -9,7 +9,7 @@
 # and permissions to create a new file in the folder of the script.                                             #
 #                                                                                                               #
 # Parameters and descriptions: Reads the UTF-16 file in the folder where the script is located specified by the #
-# first argument. Data from the first file is then written in UTF-8 format with the same name as the input_data file #
+# first argument. Data from the first file is then written in UTF-8 format with the same name as the input file #
 # plus a 'utf-8.csv' suffix. If output file exists, its content will be overwritten.                            #
 #                                                                                                               #
 # -Argument 1: relative route from the same folder where the script is executed.                                #
@@ -25,4 +25,4 @@ try:
     datasetutf8.close()
     datasetutf16.close()
 except IOError as e:
-    print("I/O error({0}): {1}".format(e.errno, e.strerror))
+    print "I/O error({0}): {1}".format(e.errno, e.strerror)
