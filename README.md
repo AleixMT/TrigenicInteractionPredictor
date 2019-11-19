@@ -9,7 +9,6 @@ Biotechnology Final Degree Project which consists of an algorithm that predicts 
 * The training algorithm can be executed in parallel using [GNU-parallel](https://www.gnu.org/software/parallel/).
 * To write the corresponding article we used [LaTeX](https://www.latex-project.org/).
 
-
 ## Introduction
 Genetic interactions occur when two or more mutations in different genes combine to result in a phenotype that is different from the expected phenotype when these mutations are tested separately in different individuals. 
 
