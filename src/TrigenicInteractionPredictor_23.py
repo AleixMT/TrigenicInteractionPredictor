@@ -45,9 +45,14 @@ class Model:
 		self.id_gene = {}  # dictionary that relates an id with its gene
 		self.gene_id = {}  # dictionary that relates a gene with its id
 
-		# Probability matrix
+		# Probability matrix for trigenic interactions
 		self.pr = []
 		self.npr = []
+
+		# Probability matrix for trigenic interactions
+		self.qr = []
+		self.nqr = []
+
 
 		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 with the format "id1_id2_id3" in links,
 		# and "namegene1_namegene2_namegene3" in nlinks.
@@ -56,9 +61,17 @@ class Model:
 		self.nlinks = {}
 		self.links = {}
 
+		# Matrix of ratings dyadic interactions. rows: relation between gene1, gene2 and gene3 with the format "id1_id2" in links,
+		# and "namegene1_namegene2" in nlinks.
+		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
+		#  and gene3 with rating r
+		self.ndlinks = {}
+		self.dlinks = {}
+
 		# Same format as the previous dictionary, but we will use this data structure to calculate metrics, and not for
 		# iterations
-		self.test_links = {}
+		self.test_links = {} #for triplets
+		self.dtest_links = {} #for pairs
 
 		# Contains the real and predicted probabilities for every triplete in the test_links
 		self.results = []
@@ -135,6 +148,18 @@ class Model:
 			self.pr.append(b)  # random values for pr
 			self.npr.append(c)  # 0s for npr
 
+		# Generate qr and qpr, 3D matrix with vectors of R components on its cells
+		self.qr = []
+		self.nqr = []
+		for i in range(self.K):
+			b = []
+			c = []
+			for j in range(self.K):
+				a = [random.random() for _ in range(self.R)]
+				c.append([0.] * self.R)
+				b.append(a)
+			self.qr.append(b)  # random values for pr
+			self.nqr.append(c)  # 0s for npr
 		# Normalization for theta vector of genes:
 		for i in range(self.P):  # Iterate over number of genes
 			sumtheta = 0.  # sum of possibilities of theta vector for gene i
@@ -164,6 +189,17 @@ class Model:
 							self.pr[i][j][k][r] /= sumpr
 						except ZeroDivisionError:
 							self.pr[i][j][k][r] /= (sumpr + self.eps)
+		# Normalization of the vector probability for each gene having interaction with another gene
+		for i in range(self.K):
+			for j in range(self.K):
+				sumqr = 0.  # Acumulator of possibilities for all ratings
+				for r in range(self.R):
+                                        sumqr += self.qr[i][j][r]
+				for r in range(self.R):  # sum of prob of a user from group K giving rate R to a item from group L is 1
+					try:
+						self.qr[i][j][r] /= sumqr
+					except ZeroDivisionError:
+						self.qr[i][j][r] /= (sumqr + self.eps)
 
 	# Method getInput:
 	#
@@ -246,7 +282,7 @@ class Model:
 						if fields[4] != selectedinteractiontype:
 							continue
                                                 
-                                                
+
 					if interactions == 'ALL': ## decide whether we want to consider positive vs negative interactions or novel vs digenic altered interactions
                                                              
 					        r = 0
@@ -270,17 +306,25 @@ class Model:
 					gene_triplet = fields[1].split('+')
 					gene_triplet.append(fields[3])
 
+                                        ##remove allele ho\delta for digenic interactions -- it appears in all of them but it is the default mutant strain
+					try:
+                                                gene_triplet.remove('hoΔ')
+					except:
+					        pass
+
+                                        
 					# REGISTER ALLELES
 					id_gene_triplet = []
-					for gene in gene_triplet:  # for every gene in the triplet
+					for gene in gene_triplet:  # for every gene in the triplet except ho\delta which will result in a digenic interaction
 						if gene not in self.gene_id.keys():  # gene hasnt been seen by algorithm
-							self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
-							self.id_gene[gid] = gene  # assign a new gene to this gid
-							self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
-							gid += 1  # update index gid
+                                                        self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
+                                                        self.id_gene[gid] = gene  # assign a new gene to this gid
+                                                        self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
+                                                        gid += 1  # update index gid
 						else:  # gene is already registered
-							n1 = self.gene_id[gene]  # get gid from gene, already registered
-
+                                                        n1 = self.gene_id[gene]  # get gid from gene, already registered
+                                                
+                                                        
 						# REGISTER NUMBER OF INTERACTIONS
 						self.uniqueg[n1] += 1  # indicates number of interactions for gene identified by id
 
@@ -295,29 +339,41 @@ class Model:
 					str_name_gene_triplet = '_'.join(gene_triplet)
 					str_gene_triplet = '_'.join(id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
 
-					try:
-						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
-						self.nlinks[str_name_gene_triplet][r] += 1
-					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
-						self.nlinks[str_name_gene_triplet] = [0] * 2
-						self.nlinks[str_name_gene_triplet][r] += 1
-						self.links[str_gene_triplet] = [0] * 2
-						self.links[str_gene_triplet][r] += 1
+					if len(gene_triplet)==3:
+					        try:
+						        self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+						        self.nlinks[str_name_gene_triplet][r] += 1
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.nlinks[str_name_gene_triplet] = [0] * 2
+						        self.nlinks[str_name_gene_triplet][r] += 1
+						        self.links[str_gene_triplet] = [0] * 2
+						        self.links[str_gene_triplet][r] += 1
+					if len(gene_triplet)==2:
 
-					# limit number of read lines
+					        try:
+						        self.dlinks[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+						        self.ndlinks[str_name_gene_triplet][r] += 1
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.ndlinks[str_name_gene_triplet] = [0] * 2
+						        self.ndlinks[str_name_gene_triplet][r] += 1
+						        self.dlinks[str_gene_triplet] = [0] * 2
+						        self.dlinks[str_gene_triplet][r] += 1
+
+
+                                        # limit number of read lines
 #					counter += 1
 #					if counter == numlines:
 #						break
 
 				self.P = len(self.id_gene)  # get number of users
 				fileref.close()
-
+                                
+                                
 		except ValueError as error:
 			print(error)
 		except IOError as error:
 			print('Error, file does not exist or can\'t be read')
 			print(error)
-
                         
 	## method that reads input links,nlinks and test_link form train and test files in the format name1_name2_name3+\t+rating  
 	def get_traintest(self, trainfile,testfile): 
@@ -336,6 +392,13 @@ class Model:
 					fields = line.strip().split('\t')  # obtain all fields from current line separeated with tabs
 
 					gene_triplet = fields[0].split('_')
+                                        ##remove allele ho\delta for digenic interactions -- it appears in all of them but it is the default mutant strain
+					try:
+                                                gene_triplet.remove('hoΔ')
+					except:
+					        pass
+
+                                      
 					r = int(fields[1])
                                         
 					# REGISTER ALLELES
@@ -363,15 +426,26 @@ class Model:
 					str_name_gene_triplet = '_'.join(gene_triplet)
 					str_gene_triplet = '_'.join(id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
 
-					try:
-						self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
-						self.nlinks[str_name_gene_triplet][r] += 1
-					except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
-						self.nlinks[str_name_gene_triplet] = [0] * 2
-						self.nlinks[str_name_gene_triplet][r] += 1
-						self.links[str_gene_triplet] = [0] * 2
-						self.links[str_gene_triplet][r] += 1
 
+					if len(gene_triplet)==3:
+                                        
+					        try:
+						        self.links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+						        self.nlinks[str_name_gene_triplet][r] += 1
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.nlinks[str_name_gene_triplet] = [0] * 2
+						        self.nlinks[str_name_gene_triplet][r] += 1
+						        self.links[str_gene_triplet] = [0] * 2
+						        self.links[str_gene_triplet][r] += 1
+					if len(gene_triplet)==2:
+					        try:
+						        self.dlinks[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+						        self.ndlinks[str_name_gene_triplet][r] += 1
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.ndlinks[str_name_gene_triplet] = [0] * 2
+						        self.ndlinks[str_name_gene_triplet][r] += 1
+						        self.dlinks[str_gene_triplet] = [0] * 2
+						        self.dlinks[str_gene_triplet][r] += 1
 					# limit number of read lines
 #					counter += 1
 #					if counter == numlines:
@@ -379,7 +453,8 @@ class Model:
 
 				self.P = len(self.id_gene)  # get number of users
 				fileref.close()
-                                
+                        
+			print('number of triplets, pairs',len(self.links),len(self.dlinks))
 			with codecs.open(testfile, encoding='utf-8', mode='r') as fileref:
 
 				for line in fileref.readlines():
@@ -392,6 +467,14 @@ class Model:
 					fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
 
 					gene_triplet = fields[0].split('_')
+                                        ##remove allele ho\delta for digenic interactions -- it appears in all of them but it is the default mutant strain
+					try:
+                                                gene_triplet.remove('hoΔ')
+					except:
+					        pass
+
+                                       
+
 					r = int(fields[1])
                                         
 					# REGISTER ALLELES
@@ -426,6 +509,22 @@ class Model:
 						self.test_links[str_gene_triplet][r] += 1
 
 
+
+					if len(gene_triplet)==3:
+                                        
+					        try:
+						        self.test_links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.test_links[str_gene_triplet] = [0] * 2
+						        self.test_links[str_gene_triplet][r] += 1
+					if len(gene_triplet)==2:
+
+					        try:
+						        self.dtest_links[str_gene_triplet][r] += 1  # link between g1, g2 and g3 with rating r it's been seen +1 times
+					        except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
+						        self.dtest_links[str_gene_triplet] = [0] * 2
+						        self.dtest_links[str_gene_triplet][r] += 1
+
 				self.P = len(self.id_gene)  # get number of users
 				fileref.close()
 
@@ -436,6 +535,7 @@ class Model:
 			print(error)
 
 		print('READ DATA train',len(self.links),len(self.nlinks))
+		print('READ DATA train',len(self.dlinks),len(self.ndlinks))
 		print('READ DATA test',len(self.test_links))
 					
 
@@ -454,7 +554,7 @@ class Model:
 	# - Fills the dictionary self.test_links with the 20 % of the links from self.links
 	# - Deletes this 20 % of links from the original dictionary.
 	# - Modifies the other data structures for coherence.
-	def fold(self):
+	def triplet_fold(self):
 		test_set_size = int(len(self.links) / 5)
 
 		# linealization of dictionary to use choice method
@@ -502,7 +602,7 @@ class Model:
 				pass
 
                         
-	def fast_fold(self,fraction=0.2,output=None,folds=None): #if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set
+	def triplet_fast_fold(self,fraction=0.2,output=None,folds=None): #if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set; test_set only triplet interactions
                 
                 
 		test_set_size = int(len(self.links) *fraction)
@@ -514,6 +614,9 @@ class Model:
 		arraylinks = []
 		for triplet, rating in self.links.items():
 			arraylinks.append(triplet)
+		darraylinks = []
+		for pair, rating in self.dlinks.items():
+			darraylinks.append(pair)
 
                 ## we shuffle the arraylinks list and then make equal splits
 		np.random.shuffle(arraylinks)
@@ -592,7 +695,7 @@ class Model:
                                 outf_test = of_ta[0]
                                 outf_test.write(data)
                                 outf_test.flush()
-                                
+                
                 ##print remaining test sets
 		print('remaining test sets')
                 
@@ -650,6 +753,208 @@ class Model:
                                 outf_train.write(data)
                                 outf_train.flush()
 					
+		for pair in darraylinks:##printing all diadic edges in train set
+			count +=1 
+			if output:
+                                ids = pair.split("_")  # split it
+				        # Obtain names for the genes in the triplet.
+                                names = []
+                                for identifier in ids:
+                                        name = self.id_gene[int(identifier)]
+                                        names.append(name)
+					
+                                                
+				        # obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+                                rating = 1
+                                if self.dlinks[pair][0]:
+                                        rating = 0
+						
+                                names.sort()
+                                str_names = '_'.join(names)
+                                data = str_names + '\t'+str(rating)+'\n'
+                                outf_train = of_tra[0]
+                                outf_train.write(data)
+                                outf_train.flush()
+					
+		outf_train.close()
+		outf_test.close()
+		
+
+
+	def pair_fast_fold(self,fraction=0.2,output=None,folds=None): #if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set; test_set only triplet interactions
+                
+                
+		test_set_size = int(len(self.dlinks) *fraction)
+		rest = len(self.dlinks) % test_set_size
+		nfolds = int(1/fraction)
+                
+                                
+
+		arraylinks = []
+		for triplet, rating in self.links.items():
+			arraylinks.append(triplet)
+		darraylinks = []
+		for pair, rating in self.dlinks.items():
+			darraylinks.append(pair)
+
+                ## we shuffle the darraylinks list and then make equal splits
+		np.random.shuffle(darraylinks)
+                        
+		if output:
+			trname_file= 'dtrain.dat'
+			tname_file= 'dtest.dat'
+			outf_train = codecs.open(trname_file, encoding='utf-8', mode="w+")
+			outf_test = codecs.open(tname_file, encoding='utf-8', mode="w+")
+			frange = 0 ##print only one fold
+			if folds =='yes': frange = nfolds
+			ta_name = []
+			of_ta = []
+			tra_name = []
+			of_tra = []                        
+			for i in range(nfolds): ##create all train test file names & open file handles
+                                ta_name.append('dtest%d.dat' %(i))
+                                of_ta.append(codecs.open(ta_name[i], encoding='utf-8', mode="w+"))
+                                tra_name.append('dtrain%d.dat' %(i))
+                                of_tra.append(codecs.open(tra_name[i], encoding='utf-8', mode="w+"))                                
+                        
+
+		count = 0
+		test = []
+		train = []
+                
+		for i in range(nfolds):
+			test.append(darraylinks[test_set_size*i:test_set_size*(i+1)])
+			if i>0: train +=test[i]
+                      
+		for j in range(rest):
+			print(test_set_size*nfolds+j,len(darraylinks))
+			test[nfolds-1].append(darraylinks[test_set_size*nfolds+j])
+                        
+                         ##all remaining triplets are put inthe last test set.
+                
+
+		train += darraylinks[test_set_size*nfolds:]
+
+		frange = 0 ##print only one fold
+		if folds =='yes': frange = nfolds
+                
+                
+                               
+                ##first create & store test and train for this run
+		for pair in test[0]:
+                        rating = 1
+                        if self.dlinks[pair][0]: rating = 0
+                        
+                        self.dtest_links[pair] = [0] * 2  # Initialize dictionary positionry:
+                        self.dtest_links[pair][rating] += 1  # link is seen +1 time (probably the maximum will be 1)
+                        
+                        ids = pair.split("_")  # split it
+
+			# Obtain names for the genes in the triplet.
+                        names = []
+                        for identifier in ids:
+#				        if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
+#					        raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
+#				        else:
+                                self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+                                name = self.id_gene[int(identifier)]  # obtain name
+                                names.append(name)  # accumulate				
+
+			        # obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+                        names.sort()  # create identifier name string
+                        str_names = '_'.join(names)
+                        self.ndlinks.pop(str_names)  # delete aparition from the gene name dictionary
+                        self.dlinks.pop(pair)  # delete aparition from the gene ID dictionary
+
+
+                        #print fold and train if output variable is defined
+                        if output:
+			
+                                data = str_names + '\t'+str(rating)+'\n'
+                                outf_test = of_ta[0]
+                                outf_test.write(data)
+                                outf_test.flush()
+                
+                ##print remaining test sets
+		print('remaining test sets')
+                
+		for f in range(1,nfolds):
+		        print('fold',f,len(test[f]))
+                        
+		        for pair in test[f]:
+                        
+                                rating = 1
+                                if self.dlinks[pair][0]: rating = 0
+                                
+                                ids = pair.split("_")  # split it
+
+
+			        # Obtain names for the genes in the triplet.
+                                names = []
+                                for identifier in ids:
+
+                                        name = self.id_gene[int(identifier)]  # obtain name
+                                        names.append(name)  # accumulate				
+
+			        # obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+                                names.sort()  # create identifier name string
+                                str_names = '_'.join(names)
+
+                                #print fold and train if output variable is defined
+                                if output:
+			
+                                        data = str_names + '\t'+str(rating)+'\n'
+                                        outf_test = of_ta[f]
+                                        outf_test.write(data)
+                                        outf_test.flush()
+
+
+		for pair in train:
+			count +=1 
+			if output:
+                                ids = pair.split("_")  # split it
+				        # Obtain names for the genes in the triplet.
+                                names = []
+                                for identifier in ids:
+                                        name = self.id_gene[int(identifier)]
+                                        names.append(name)
+					
+                                                
+				        # obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+                                rating = 1
+                                if self.dlinks[pair][0]:
+                                        rating = 0
+						
+                                names.sort()
+                                str_names = '_'.join(names)
+                                data = str_names + '\t'+str(rating)+'\n'
+                                outf_train = of_tra[0]
+                                outf_train.write(data)
+                                outf_train.flush()
+					
+		for triplet in arraylinks:##printing all diadic edges in train set
+			count +=1 
+			if output:
+                                ids = triplet.split("_")  # split it
+				        # Obtain names for the genes in the triplet.
+                                names = []
+                                for identifier in ids:
+                                        name = self.id_gene[int(identifier)]
+                                        names.append(name)
+					
+                                                
+				        # obtain rating for the current triplet. (assuming just one given rating betwen r=0 or r=1)
+                                rating = 1
+                                if self.links[triplet][0]:
+                                        rating = 0
+						
+                                names.sort()
+                                str_names = '_'.join(names)
+                                data = str_names + '\t'+str(rating)+'\n'
+                                outf_train = of_tra[0]
+                                outf_train.write(data)
+                                outf_train.flush()
+					
 		outf_train.close()
 		outf_test.close()
 		
@@ -660,21 +965,30 @@ class Model:
 	# Description: Returns the probability of interaction between three genes identified by IDs or names.
 	#
 	# Prerequisite: initialize_parameters, get_input, N x make_iteration. Needed to do predicitions.
-	def do_prediction(self, id1, id2, id3):
-		def calculate(i1, i2, i3):
+	def do_prediction(self, ids):
+		def calculate(ids):
 			p = 0
-
-			for i in range(self.K):
-				for j in range(self.K):
-					for k in range(self.K):
-						p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k][1]  # We want positives ([1])
+                        
+			if len(ids)==3:
+                               [i1,i2,i3]=ids
+                               for i in range(self.K):
+                                       for j in range(self.K):
+                                               for k in range(self.K):
+                                                       p += self.theta[i1][i] * self.theta[i2][j] * self.theta[i3][k] * self.pr[i][j][k][1] # We compute the prob that the interaction exists
+			if len(ids)==2:
+                               [i1,i2]=ids
+                               for i in range(self.K):
+                                       for j in range(self.K):
+                                               p += self.theta[i1][i] * self.theta[i2][j] * self.qr[i][j][1]  # We compute the prob that the interaction exists
+					       
 			return p
 
 		try:
-			id1_int, id2_int, id3_int = int(id1), int(id2), int(id3)
-			probability = calculate(id1_int, id2_int, id3_int)
+			id_int= [int(id) for id in ids]
+			probability = calculate(id_int)
 		except ValueError:
-			probability = calculate(self.gene_id[id1], self.gene_id[id2], self.gene_id[id3])
+                        id_gene=[self.gene_id[id] for id in ids]
+                        probability = calculate(id_gene)
 
 		return probability
 
@@ -693,8 +1007,16 @@ class Model:
 				rating = 0
 			else:
 				rating = 1
-			id1, id2, id3 = triplet.split("_")
-			self.results.append([self.do_prediction(id1, id2, id3), triplet, rating])
+			ids = triplet.split("_")
+			self.results.append([self.do_prediction(ids), triplet, rating])
+#			print(triplet,rating,self.test_links[triplet])
+		for pair, rating in self.dtest_links.items():
+			if rating[0]:
+				rating = 0
+			else:
+				rating = 1
+			ids = pair.split("_")
+			self.results.append([self.do_prediction(ids), pair, rating])
 #			print(triplet,rating,self.test_links[triplet])
                         
 		# Sort results from less to higher predicted probability
@@ -720,7 +1042,10 @@ class Model:
 		for triplet, rating in self.links.items():
 			if rating[1] == 1:
 				counter += 1
-		positives_fraction = counter / len(self.links)  # Obtain the fraction of positives in our training set
+		for pair, rating in self.dlinks.items():
+			if rating[1] == 1:
+				counter += 1
+		positives_fraction = counter / (len(self.links)+len(self.dlinks))  # Obtain the fraction of positives in our training set
 		# Obtain the number of positives in the training set assuming that the distribution of 1 and 0 is equal between sets.
 		positives_number = int(positives_fraction * len(self.test_links))
 		counter = 0
@@ -932,8 +1257,9 @@ class Model:
 				txt += str(num_sample) + "\t" + str(num_iteration) + "\t" + str(num_likelihood) + "\n"
 			return txt
 
+
 		# Returns a csv string of a pr/npr-like 3D matrix
-		def print_matrix(matrix):
+		def print_matrix3D(matrix):
 			txt = ''
 			for i in range(self.K):
 				txt += str(i) + "\n\t"
@@ -951,6 +1277,26 @@ class Model:
 					txt += "\n"
 				txt += "\n\n"
 			return txt
+
+		# Returns a csv string of a pr/npr-like 2D matrix
+		def print_matrix2D(matrix):
+			txt = ''
+			for i in range(self.K):
+				txt += str(i) + "\n\t"
+				for a in range(self.K):
+					txt += str(a) + "\t\t"
+				txt += "\n\t"
+				for b in range(self.K):
+					txt += "0\t1\t"
+				txt += "\n"
+				for j in range(self.K):
+					txt += str(j) + "\t"
+					for r in range(self.R):
+						txt += "{0:.6f}".format(matrix[i][j][r]) + "\t"
+					txt += "\n"
+				txt += "\n\n"
+			return txt
+
 
 		# Returns a formatted string of a theta/ntheta-like two components vector
 		def print_vector(vector):
@@ -990,11 +1336,11 @@ class Model:
 		text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
 		text += "Number of possible ratings (R):\n" + str(self.R) + "\n\n"
 		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
-		self.calculate_test_set_results()  # Implicit call to calculate results
-		text += "\nTest set:" + str(print_tuples(self.results))
-		metrics = self.calculate_metrics()  # Implicit call to calculate metrics
-		text += "\nMetrics:\nPrecision\tRecall\tFallout\tAUC\n"
-		text += str(metrics[0]) + "\t" + str(metrics[1]) + "\t" + str(metrics[2]) + "\t" + str(metrics[3])
+#		self.calculate_test_set_results()  # Implicit call to calculate results
+#		text += "\nTest set:" + str(print_tuples(self.results))
+#		metrics = self.calculate_metrics()  # Implicit call to calculate metrics
+#		text += "\nMetrics:\nPrecision\tRecall\tFallout\tAUC\n"
+#		text += str(metrics[0]) + "\t" + str(metrics[1]) + "\t" + str(metrics[2]) + "\t" + str(metrics[3])
 
 		# String of list of genes
 		text += "\nLIST OF REGISTERED GENES\n"
@@ -1002,29 +1348,29 @@ class Model:
 		for gid in self.id_gene:
 			text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
 
-		# String of list of links by ID
-		text += "\nLIST OF LINKS BETWEEN GENE IDS\n"
-		text += "gid1_gid2_gid3"
-		text += print_links(self.links)
+#		# String of list of links by ID
+#		text += "\nLIST OF LINKS BETWEEN GENE IDS\n"
+#		text += "gid1_gid2_gid3"
+#		text += print_links(self.links)
 
 		# String of list of links by gene name
-		text += "\nLIST OF LINKS BETWEEN GENE NAMES\n"
-		text += "n1_n2_n3"
-		text += print_links(self.nlinks)
+#		text += "\nLIST OF LINKS BETWEEN GENE NAMES\n"
+#		text += "n1_n2_n3"
+#		text += print_links(self.nlinks)
 
 		# For both pr/npr matrix
 		text += "\nMATRIX OF PROBABILITIES PR\n"
-		text += print_matrix(self.pr)
+		text += print_matrix3D(self.pr)
 
-		text += "\nMATRIX OF PROBABILITIES NPR\n"
-		text += print_matrix(self.npr)
+		text += "\nMATRIX OF PROBABILITIES QR\n"
+		text += print_matrix2D(self.qr)
 
 		# Fpr both theta/ntheta vector
 		text += "\nTHETA VECTOR\n"
 		text += print_vector(self.theta)
 
-		text += "\nNTHETA VECTOR\n"
-		text += print_vector(self.ntheta)
+#		text += "\nNTHETA VECTOR\n"
+#		text += print_vector(self.ntheta)
 
 		return text
 	# Method tostring:
@@ -1041,7 +1387,7 @@ class Model:
 			return txt
 
 		# Returns a csv string of a pr/npr-like 3D matrix
-		def print_matrix(matrix):
+		def print_matrix3D(matrix):
 			txt = ''
 			for i in range(self.K):
 				txt += str(i) + "\n\t"
@@ -1056,6 +1402,25 @@ class Model:
 					for k in range(self.K):
 						for r in range(self.R):
 							txt += "{0:.6f}".format(matrix[i][j][k][r]) + "\t"
+					txt += "\n"
+				txt += "\n\n"
+			return txt
+
+		# Returns a csv string of a pr/npr-like 2D matrix
+		def print_matrix2D(matrix):
+			txt = ''
+			for i in range(self.K):
+				txt += str(i) + "\n\t"
+				for a in range(self.K):
+					txt += str(a) + "\t\t"
+				txt += "\n\t"
+				for b in range(self.K):
+					txt += "0\t1\t"
+				txt += "\n"
+				for j in range(self.K):
+					txt += str(j) + "\t"
+					for r in range(self.R):
+						txt += "{0:.6f}".format(matrix[i][j][r]) + "\t"
 					txt += "\n"
 				txt += "\n\n"
 			return txt
@@ -1109,7 +1474,7 @@ class Model:
 		text += "Gene_ID\tGene_name\tnumAparitions\n"
 		for gid in self.id_gene:
 			text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
-
+                        
 		return text
 
 	# Method toFile(string):
@@ -1204,6 +1569,20 @@ class Model:
 							d[r] += self.theta[id1][i] * self.theta[id2][j] * self.theta[id3][k] * self.pr[i][j][k][r]
 			for r in range(self.R):
 				log_l += rating_vector[r] * math.log(d[r])
+
+                                
+		for pair, rating_vector in self.dlinks.items():  # e X ra iteration
+			g1, g2  = pair.split('_')
+			id1, id2 = int(g1), int(g2)  # get IDs from three genes from link
+			d = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
+
+			for i in range(self.K):
+				for j in range(self.K):
+					for r in range(self.R):
+						d[r] += self.theta[id1][i] * self.theta[id2][j] * self.qr[i][j][r]
+			for r in range(self.R):
+				log_l += rating_vector[r] * math.log(d[r])
+                                
 		self.likelihood = log_l
 		return log_l
 
@@ -1251,6 +1630,35 @@ class Model:
 							self.ntheta[id2][j] += a * rating_vector[r]
 							self.ntheta[id3][k] += a * rating_vector[r]
 							self.npr[i][j][k][r] += a * rating_vector[r]
+		for pair, rating_vector in self.dlinks.items():  # e X R iteration
+			g1, g2 = pair.split('_')
+			id1, id2 = int(g1), int(g2)  # get IDs from three genes from link
+			dd = [self.eps] * self.R  # Generate a vector of R position with eps value (constant defined in headers)
+                        
+#			s1 = sum(self.theta[id1])
+#			s2 = sum(self.theta[id2])
+#			s3 = sum(self.theta[id3])
+			counter[id1]+=1
+			counter[id2]+=1
+
+
+#			txt = "Sums theta %f %f %f" % (s1,s2,s3)
+                       
+#			print (txt)
+
+			for i in range(self.K):
+				for j in range(self.K):
+					for r in range(self.R):
+						dd[r] += self.theta[id1][i] * self.theta[id2][j] * self.qr[i][j][r]
+
+			for i in range(self.K):
+				for j in range(self.K):
+					for r in range(self.R):
+						# auxiliary variable
+						a = (self.theta[id1][i] * self.theta[id2][j] * self.qr[i][j][r]) / dd[r]
+						self.ntheta[id1][i] += a * rating_vector[r]
+						self.ntheta[id2][j] += a * rating_vector[r]
+						self.nqr[i][j][r] += a * rating_vector[r]
                                                        
 		# Normalizations:
 		# divide all possibilities of i belonging to a group k with the number of relation of that user
@@ -1258,13 +1666,13 @@ class Model:
 			for k in range(self.K):
 ##				self.ntheta[i][k] /= float(self.uniqueg[i]) ## wrong denominator, uniqueg was computed for the whole set!! Needs to be computed only for the train set
 				self.ntheta[i][k] /= float(counter[i])
-##			s1 = sum(self.ntheta[i])
-##			s2 = sum(self.theta[id2])a
-##			s3 = sum(self.theta[id3])
-##			txt = "Sums theta %f %f %f" % (s1,s2,s3)
-##			txt = "Sum ntheta %f " % (s1)
+#			s1 = sum(self.theta[i])
+#			txt = "Sums theta %f " % (s1)
+#			s1 = sum(self.ntheta[i])
+#			print (txt)
+#			txt = "Sum ntheta %f " % (s1)
 ##			if self.uniqueg[i]!= counter[i]: print ("Counter not equal",self.uniqueg[i],counter[i],i)
-##			print (txt)
+#			print (txt)
                          
 		# divide the probability of the group k giving rate to a item l with a rating r between the sum of all ratings
 		for i in range(self.K):
@@ -1275,6 +1683,13 @@ class Model:
 						d += self.npr[i][j][k][r]
 					for r in range(self.R):
 						self.npr[i][j][k][r] /= d
+		for i in range(self.K):
+			for j in range(self.K):
+				d = self.eps
+				for r in range(self.R):
+					d += self.nqr[i][j][r]
+				for r in range(self.R):
+					self.nqr[i][j][r] /= d
 
 		# Copies values from n* data structures to the current structures
 		self.theta = copy.copy(self.ntheta)
@@ -1282,6 +1697,9 @@ class Model:
 			for j in range(self.K):
 				for k in range(self.K):
 					self.pr[i][j][k] = self.npr[i][j][k]
+		for i in range(self.K):
+			for j in range(self.K):
+				self.qr[i][j] = self.nqr[i][j]
 
 		# Reinitialization of n * data structures
 		for i in range(self.P):
@@ -1290,6 +1708,9 @@ class Model:
 			for j in range(self.K):
 				for k in range(self.K):
 					self.npr[i][j][k] = [0.] * self.R
+		for i in range(self.K):
+			for j in range(self.K):
+				self.nqr[i][j] = [0.] * self.R
 	# Method compareDataset(model):
 	#
 	# Description: Given another object model, data of links and genes is comparated separately. This information will
@@ -1406,7 +1827,7 @@ if __name__ == "__main__":
 		samples = 100
 		frequencyCheck = 10
 		filename = "/export/home/shared/Projects/Trigenic/TrigenicInteractionPredictor/src/Data_S1.csv"
-		interactionType = "trigenic"
+		interactionType = "*"#"trigenic"
 		cutOffValue = -0.08
 		argk = 2
 	
@@ -1419,7 +1840,8 @@ if __name__ == "__main__":
 
 	model = Model()
 	model.get_input(filename, interactionType, cutOffValue, 0, 10000)
-	model.fast_fold(output=1,folds='yes')
+#	model.triplet_fast_fold(output=1,folds='yes')
+	model.pair_fast_fold(output=1,folds='yes')
 
 	print("\nStarting algorithm...")
 
