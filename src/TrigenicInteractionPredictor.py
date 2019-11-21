@@ -1159,7 +1159,7 @@ if __name__ == "__main__":
 
     # This method returns value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
-    # This code block process the arguments given to the program
+    # This code block processes the arguments given to the program
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hi:n:s:f:b:o:t:e:k:",
                                    ["help", "iterations=", "numSamples=", "sampleIni=", "fcheck=", "bcheck=", "out=", "train=", "test=", "k="])
