@@ -18,7 +18,7 @@ But if we delete gene A and B in the same individual, we will find that the phen
 
 Knowing all the above we can realise that gene A and B are interacting because when deleted in the same individual the obtained phenotype (lethal) is different than the obtained phenotype when the deletions occur in separated individuals. 
 
-To determine how lethal the supression of genes can be, we measure the size of the colony resulting from a individual containing the suppressions that we want to study. The relation between the real and expected size of the colony is what we call **fitness** and along ith our mathematical model allows us to determine if there is an interaction between genes and what type of interaction is it.
+To determine how lethal the supression of genes can be, we measure the size of the colony resulting from a individual containing the suppressions that we want to study. The relation between the real and expected size of the colony is what we call **fitness**. Our mathematical model allows us to process this data and to determine if there is an interaction between genes and what type of interaction is it.
 
 ## Types of genetic interaction
 We will consider two main types of interaction:
@@ -30,11 +30,9 @@ We will consider two main types of interaction:
 ## Algorithm
 Our algorithm consists of two different coupled parts: training and testing. In the training we show a part of our data set to the algorithm so it is able to learn from it. In the testing we check how good our algorithm does its predictions about a part of the dataset that has not been never seen by the algorithm before.
 
-In order to use this two parts the script must be run using the *fold(...)* method before doing anything. This will split our data set in five different chunks in which we will use [k-fold crossed validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics)) in order to cross-validate the algorithm.
+In order to use this two parts the script must be run using the *fold(...)* method before doing anything. This will split our data set in five different chunks in which we will use [k-fold crossed validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics)) in order to cross-validate the algorithm and to calculate metrics.
 
 After the split is done, you can run the algorithm using as input one of the data chunks that the method split has created to train the algorithm and the corresponding chunk to do the testing, consecutively.
-
-
 
 ##### Training
 The training part has many steps:
