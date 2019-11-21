@@ -537,7 +537,6 @@ class Model:
 		print('READ DATA train',len(self.links),len(self.nlinks))
 		print('READ DATA train',len(self.dlinks),len(self.ndlinks))
 		print('READ DATA test',len(self.test_links))
-					
 
 	# Method fold:
 	#
