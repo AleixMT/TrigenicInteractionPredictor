@@ -1155,7 +1155,7 @@ if __name__ == "__main__":
     train = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/train0.dat'
     test = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/test0.dat'
     outfilepath = ""
-    argk = 2
+    argk = 1
 
     # This method returns value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
@@ -1222,7 +1222,6 @@ if __name__ == "__main__":
                 if int(arg == 1):
                     print(
                         "\n\nWARNING:If number of groups is 1, algorithm is single-membership instead of mixed\n")
-                    raise ValueError
                 argk = int(arg)
 
     except getopt.GetoptError:

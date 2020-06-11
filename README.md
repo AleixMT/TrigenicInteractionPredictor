@@ -56,41 +56,41 @@ Our main script is "TrigenicInteractionPredictor.py". This file contains the cla
 
 ##### Informational Parameters
 
-	-h, --help
-		Displays the usage information.
+-h, --help
+	Displays the usage information.
 
 ##### Behaviour Parameters
 
-	-i NUMITERATIONS, --iterations=NUMINTERATIONS
-		Sets the maximum number of iterations that the program can compute for each sample. This does not mean that each sample is going to take NUMITERATIONS to finish, since the algorithm iterate over a sample until the likelihood reaches certain threshold. To force this behaviour, set frequencyCheck to 0, so likelihood is computed only at the end of NUMITERATIONS iterations and the program will not finish due to likelihood converge.
+-i NUMITERATIONS, --iterations=NUMINTERATIONS
+	Sets the maximum number of iterations that the program can compute for each sample. This does not mean that each sample is going to take NUMITERATIONS to finish, since the algorithm iterate over a sample until the likelihood reaches certain threshold. To force this behaviour, set frequencyCheck to 0, so likelihood is computed only at the end of NUMITERATIONS iterations and the program will not finish due to likelihood converge.
 
-	-n NUMSAMPLES, --numSamples=NUMSAMPLES
-		Sets how many samples will do the algorithm.
+-n NUMSAMPLES, --numSamples=NUMSAMPLES
+	Sets how many samples will do the algorithm.
 
-	-f LIKELIHOODFREQUENCYCHECK, --fcheck=LIKELIHOODFREQUENCYCHECK
-		Sets how often the likelihood is computed. Every LIKELIHOODFREQUENCYCHECK iterations the likelihood will be computed. If LIKELIHOODFREQUENCYCHECK is set to 0, likelihood will be only computed at iteration number NUMITERATION, actually the last of the sample. If LIKELIHOODFREQUENCYCHECK is set to 1 likelihood will be computed every iteration. This behaviour parameter can be used with -b. LIKELIHOODFREQUENCYCHECK should be lower than NUMITERATIONS. Likelihood computing is computative and time expensive, so this parameter should be adjusted.
+-f LIKELIHOODFREQUENCYCHECK, --fcheck=LIKELIHOODFREQUENCYCHECK
+	Sets how often the likelihood is computed. Every LIKELIHOODFREQUENCYCHECK iterations the likelihood will be computed. If LIKELIHOODFREQUENCYCHECK is set to 0, likelihood will be only computed at iteration number NUMITERATION, actually the last of the sample. If LIKELIHOODFREQUENCYCHECK is set to 1 likelihood will be computed every iteration. This behaviour parameter can be used with -b. LIKELIHOODFREQUENCYCHECK should be lower than NUMITERATIONS. Likelihood computing is computative and time expensive, so this parameter should be adjusted.
 
-	-b LIKELIHOODCOMPUTINGSTARTINGITERATION, --bcheck=LIKELIHOODCOMPUTINGSTARTINGITERATION
-		Sets in which iteration the algorithm will be able to start computing the likelihood. Can be used in conjunction with -f.
+-b LIKELIHOODCOMPUTINGSTARTINGITERATION, --bcheck=LIKELIHOODCOMPUTINGSTARTINGITERATION
+	Sets in which iteration the algorithm will be able to start computing the likelihood. Can be used in conjunction with -f.
 
-	-o OUTPUTPATH, --out=OUTPUTPATH
-		Sets the output folder in which the program will store its result for every sample
-	
+-o OUTPUTPATH, --out=OUTPUTPATH
+	Sets the output folder in which the program will store its result for every sample
+
 ##### Algorithm parameters
 
-	-t TRAINFILEPATH, --train=TRAINFILEPATH
-		Sets the path to the file containing the training information. This file should be generated using the *fold(...)* method.
-	
-	-e TESTFILEPATH, --test=TESTFILEPATH
-		Sets the path to the file containing the testing information. This file should be generated using the *fold(...)* method.
+-t TRAINFILEPATH, --train=TRAINFILEPATH
+	Sets the path to the file containing the training information. This file should be generated using the *fold(...)* method.
 
-	-k KLEVEL, --k=KLEVEL
-		Sets the K argument to the algorithm. More K implies more computation but not necessarily better results or precision. Greater values of K may produce over-fitting. K should be 2 or greater tu use MMSBM. If not, algorithm is Single-Membership Stochastic Block Model.
+-e TESTFILEPATH, --test=TESTFILEPATH
+	Sets the path to the file containing the testing information. This file should be generated using the *fold(...)* method.
+
+-k KLEVEL, --k=KLEVEL
+	Sets the K argument to the algorithm. More K implies more computation but not necessarily better results or precision. Greater values of K may produce over-fitting. K should be 2 or greater tu use MMSBM. If not, algorithm is Single-Membership Stochastic Block Model.
 
 ##### Parallelization Parameters
 
-	-s SAMPLENUMBERINITIALIZATION, --sampleIni=SAMPLENUMBERINITIALIZATION
-		Sets in which number of sample we are currently. Used when running in parallel to be able to loop unroll the main loop of TrigenicInteractionPredictor.py and to avoid that different instances of the algorithm write in the same file. 
+-s SAMPLENUMBERINITIALIZATION, --sampleIni=SAMPLENUMBERINITIALIZATION
+	Sets in which number of sample we are currently. Used when running in parallel to be able to loop unroll the main loop of TrigenicInteractionPredictor.py and to avoid that different instances of the algorithm write in the same file. 
 	
 ##### Default arguments
     --iterations=10000
