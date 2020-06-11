@@ -1,0 +1,168 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+
+\title{Latex Tutorial}
+\date{11-06-2020}
+\author{Aleix Mariné}
+
+\begin{document}
+  \maketitle
+  \newpage
+
+\section{Source}
+Tutorial in https://www.latex-tutorial.com/tutorials/first-document/
+
+\section{Basics}
+\subsection{Compilation}
+Compile using: 
+\paragraph{}
+pdflatex FILENAME
+
+\subsection{Classes}
+LaTeX uses document classes, to influence the overall layout of your document. For instance, there's one class to layout articles, one class to layout books (called book) and many more. Use a class by writing:
+\paragraph{}
+\textbackslash documentclass\{CLASSNAME\}
+
+\subsection{Environments}
+This second example differs slightly from the first one, since this command involves a \textbackslash begin and  \textbackslash  end statement. In fact this is not a command, but defines an environment. An environment is simply an area of your document where certain typesetting rules apply. It is possible (and usually necessary) to have multiple environments in a document, but it is imperative the document environment is the topmost environment.
+\paragraph{}
+\textbackslash begin\{document\}
+\paragraph{}
+  Hello World!
+\paragraph{}
+\textbackslash end\{document\}
+
+
+
+\subsection{Preamble}
+Obviously the statements \textbackslash title, \textbackslash date and  \textbackslash author are not within the the document environment, so they will not directly show up in our document. The area before our main document is called preamble.
+
+\paragraph{}
+\textbackslash documentclass\{article\}
+\paragraph{}
+\textbackslash title\{My first document\}
+\paragraph{}
+\textbackslash date\{2013-09-01\}
+\paragraph{}
+\textbackslash author\{John Doe\}
+
+\subsection{Special characters}
+Special characters in LaTeX are: \& \% \$ \# \_ \{ \} \textasciitilde \textasciicircum \textbackslash
+
+\paragraph{}
+The seven first can be escaped with a backslash, the other ones can be written using macros: \textbackslash textasciitilde \textbackslash textasciicircum \textbackslash textbackslash
+
+\subsection{Page numbers}
+We can remove page number, by telling LaTeX to hide the page number for our first page. This can be done by adding the \textbackslash pagenumbering\{gobble\} command and then changing it back to \textbackslash pagenumbering\{arabic\} on the next page numbers.
+
+\paragraph{}
+    gobble - no numbers
+\paragraph{}
+    arabic - arabic numbers
+\paragraph{}
+    roman - roman numbers
+
+\subsection{Sections}
+You can create different sections to strucure the documents with the following commands
+\textbackslash section\{\}
+\textbackslash subsection\{\}
+\textbackslash subsubsection\{\}
+
+\textbackslash paragraph\{\}
+\textbackslash subparagraph\{\}
+
+\section{Packages}
+LaTeX offers a lot of functions by default, but in some situations it can become in handy to use so called packages. To import a package in LaTeX, you simply add the \textbackslash usepackage\
+{PACKAGENAME\} directive to the preamble of your document. Packages add new functions to LaTeX. All packages must be included in the preamble. Packages add features such as support for pictures, links and bibliography
+
+\paragraph{}
+To typeset math, LaTeX offers (among others) an environment called equation. Everything inside this environment will be printed in math mode, a special typesetting environment for math.
+
+\paragraph{}
+\textbackslash begin\{equation\}
+\paragraph{}
+	f(x) = x \textasciicircum 2
+\paragraph{}
+\textbackslash end\{equation\}
+
+\paragraph{}
+To avoid using equation numbers we can use the package amsmath and the environment equation*
+
+\section{Math}
+\subsection{Inline math}
+To make use of the inline math feature, simply write your text and if you need to typeset a single math symbol or formula, surround it with dollar signs.
+
+\subsection{Equation and align environment}
+\paragraph{}
+To write equations and aligning them with a certain criteria use the align environment
+\paragraph{}
+\textbackslash begin\{align*\}
+\paragraph{}
+  1 + 2 \&= 3\\
+\paragraph{}
+  1 \&= 3 - 2
+\paragraph{}
+\textbackslash end\{align*\}
+
+\paragraph{}
+The align environment will align equations using the ampersand character. Single equations must be separated using a linebreak \textbackslash \textbackslash .
+
+\subsection{Math commands}
+\paragraph{Fractions}
+\textbackslash frac\{NUMERADOR\}\{DENOMINADOR\}
+\begin{equation*}
+	\frac{NUMERADOR}{DENOMINADOR}
+\end{equation*}
+
+\paragraph{Integrals}
+\textbackslash int\textasciicircum COTASUPERIOR\_COTAINFERIOR
+\begin{equation*}
+	\int^A_B
+\end{equation*}
+
+\paragraph{Square roots}
+\textbackslash sqrt\{RADICAND\}
+\begin{equation*}
+	\sqrt{RADICAND}
+\end{equation*}
+
+\paragraph{Matrices}
+\paragraph{}
+\textbackslash left[
+\paragraph{}
+\textbackslash begin\{matrix\}
+\paragraph{}
+1 \& 0\textbackslash \textbackslash
+\paragraph{}
+0 \& 1
+\paragraph{}
+\textbackslash end\{matrix\}
+\paragraph{}
+\textbackslash right]
+
+\paragraph{}
+\begin{equation*}
+\left[
+\begin{matrix}
+1 & 0\\
+0 & 1
+\end{matrix}
+\right]
+\end{equation*}
+
+\section{Images and figures}
+\paragraph{}
+From time to time, it's necessary to add pictures to your documents. Using LaTeX all pictures will be indexed automatically and tagged with successive numbers when using the figure environment and the graphicx package.
+
+https://www.latex-tutorial.com/tutorials/figures/
+
+
+
+
+
+
+
+\end{document}
+
+

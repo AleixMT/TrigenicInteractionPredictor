@@ -133,3 +133,6 @@ src/Results/*
 src/venv2/*
 src/venv/*
 src/batch_commands.sh
+*.aux
+*.log
+*.a
