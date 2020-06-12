@@ -417,6 +417,7 @@ class Model:
         except IOError as error:
             print('Error, file does not exist or can\'t be read')
             print(error)
+            exit(1)
 
         print('READ DATA train', len(self.links), len(self.nlinks))
         print('READ DATA test', len(self.test_links))
@@ -844,7 +845,7 @@ class Model:
             return txt
 
         text = "Max Likelihood:\t" + str(self.likelihood) + "\n"
-        text += "Held-out Likelihood:\t" + str(self.compute_likelihood('test'))
+        text += "Held-out Likelihood:\t" + str(self.compute_likelihood('test')) + "\n"
         text += "Number of genes (P):\t" + str(self.P) + "\n"
         text += "Number of links:\t" + str(len(self.links)) + "\n"
         text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
@@ -1152,8 +1153,8 @@ if __name__ == "__main__":
     sampleIni = 0
     frequencyCheck = 25
     beginCheck = 100
-    train = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/train0.dat'
-    test = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/test0.dat'
+    train = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DATA_FOLDS/train0.dat'
+    test = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DATA_FOLDS/test0.dat'
     outfilepath = ""
     argk = 1
 

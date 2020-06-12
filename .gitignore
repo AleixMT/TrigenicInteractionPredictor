@@ -136,3 +136,5 @@ src/batch_commands.sh
 *.aux
 *.log
 *.a
+venv/*
+data/DEFINITIVE_RESULTS

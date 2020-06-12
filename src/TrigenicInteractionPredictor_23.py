@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #################################################################################################################
 # Authors: Aleix Marine i Tena (aleix.marine@estudiants.urv.cat)                                                #
-# Last review: 6/7/2018                                                                                         #
+# Last review: 12/6/2020                                                                                         #
 # Version: 1.0                                                                                                  #
 #       																									    #
 # Description: This code tries to predict interaction between genes in Pichia pastoris. We use supplementary    #
@@ -10,10 +10,6 @@
 # (http://science.sciencemag.org/content/360/6386/eaao1729). DOI: 10.1126/science.aao1729 to get our data.      #
 # We treat every gene as a node in our network. Links are every assay from the dataset between three genes.     #
 # This links are tagged with 0 or 1 if there is interaction or not.                                             #
-#                                                                                                               #
-# Using Mixed-Membership Stochastic Block Model (MMSBM) we try to predict interaction between triplets of      	#
-# genes. Every gene has a vector with the length of the number of groups. Every cell in this vector has the     #
-# possibility of a gene behaving like one concrete group.                                                       #
 #                                                                                                               #
 # Permissions: Needs permission to read from data files and to write in the same folder as the script if        #
 # to_File() method is called.                                                                                   #
@@ -26,8 +22,8 @@ import random
 import sys
 import copy
 import math
-#import matplotlib.pyplot as plt
 import numpy as np
+from enum import Enum
 
 
 class Model:
@@ -53,7 +49,6 @@ class Model:
 		self.qr = []
 		self.nqr = []
 
-
 		# Matrix of ratings. rows: relation between gene1, gene2 and gene3 with the format "id1_id2_id3" in links,
 		# and "namegene1_namegene2_namegene3" in nlinks.
 		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
@@ -61,17 +56,17 @@ class Model:
 		self.nlinks = {}
 		self.links = {}
 
-		# Matrix of ratings dyadic interactions. rows: relation between gene1, gene2 and gene3 with the format "id1_id2" in links,
+		# Matrix of ratings dyadic interactions. rows: relation between gene1 and gene2 with the format "id1_id2" in links,
 		# and "namegene1_namegene2" in nlinks.
-		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
-		#  and gene3 with rating r
+		# columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1 and gene2
+		# with rating r
 		self.ndlinks = {}
 		self.dlinks = {}
 
 		# Same format as the previous dictionary, but we will use this data structure to calculate metrics, and not for
 		# iterations
-		self.test_links = {} #for triplets
-		self.dtest_links = {} #for pairs
+		self.test_links = {}  # For triplets
+		self.dtest_links = {}  # For pairs
 
 		# Contains the real and predicted probabilities for every triplete in the test_links
 		self.results = []
@@ -98,6 +93,11 @@ class Model:
 		# eps: constant small value
 		self.eps = 1e-10
 
+		class Datatype(Enum):
+			ALL = 0
+			TRIGENIC = 3
+			DIGENIC = 2
+
 	# Method initializeParameters:
 	#
 	# Description: Initializes theta and pr with random values and ntheta and npr with random values.
@@ -105,7 +105,7 @@ class Model:
 	#
 	# Arguments:
 	# 1.- K (number of group of genes) can be given using this method directly. Calling the method
-	# without arguments will make K a random positive number
+	# without arguments will make K = 2
 	#
 	# Return parameters:
 	# ntheta / theta 	--> vector of possibilities of a gene belonging to a determinate group of genes
@@ -114,7 +114,7 @@ class Model:
 	# K 				--> number of groups of gene
 	# R 				--> Number of possible ratings [0|1]
 
-	def initialize_parameters(self, kvalue=10):
+	def initialize_parameters(self, kvalue=2):
 		try:
 			self.K = int(kvalue)  # set K value to initialize parameters
 		except ValueError:  # if we cant parse
@@ -148,7 +148,7 @@ class Model:
 			self.pr.append(b)  # random values for pr
 			self.npr.append(c)  # 0s for npr
 
-		# Generate qr and qpr, 3D matrix with vectors of R components on its cells
+		# Generate qr and qpr, 2D matrix with vectors of R components on its cells
 		self.qr = []
 		self.nqr = []
 		for i in range(self.K):
@@ -160,6 +160,7 @@ class Model:
 				b.append(a)
 			self.qr.append(b)  # random values for pr
 			self.nqr.append(c)  # 0s for npr
+
 		# Normalization for theta vector of genes:
 		for i in range(self.P):  # Iterate over number of genes
 			sumtheta = 0.  # sum of possibilities of theta vector for gene i
@@ -167,16 +168,16 @@ class Model:
 				sumtheta += self.theta[i][k]  # and get the sum of prob. of vector theta for gene 1
 
 			if sumtheta < self.eps: #regenerate
-			        a = [random.random() for _ in range(self.K)]  # xrange to generate big lists (optimization)
-			        self.theta[i] = a
-                                
-			sumtheta = sum(self.theta[i]) 
+				a = [random.random() for _ in range(self.K)]  # xrange to generate big lists (optimization)
+				self.theta[i] = a
+
+			sumtheta = sum(self.theta[i])
 			for k in range(self.K):  # iterate over number of groups of genes
 				try:
 					self.theta[i][k] /= sumtheta
 				except ZeroDivisionError:
 					self.theta[i][k] /= (sumtheta + self.eps)  # adding an small value to avoid dividing by zero
-#			if sum(self.theta[i]) != 1.: print ("Not 1", sum(self.theta[i]),self.theta[i])
+
 		# Normalization of the vector probability for each gene having interaction with two other genes
 		for i in range(self.K):
 			for j in range(self.K):
@@ -446,10 +447,6 @@ class Model:
 						        self.ndlinks[str_name_gene_triplet][r] += 1
 						        self.dlinks[str_gene_triplet] = [0] * 2
 						        self.dlinks[str_gene_triplet][r] += 1
-					# limit number of read lines
-#					counter += 1
-#					if counter == numlines:
-#						break
 
 				self.P = len(self.id_gene)  # get number of users
 				fileref.close()
@@ -601,7 +598,7 @@ class Model:
 				pass
 
                         
-	def triplet_fast_fold(self,fraction=0.2,output=None,folds=None): #if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set; test_set only triplet interactions
+	def triplet_fast_fold(self, fraction=0.2, output=None, folds=None): #if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set; test_set only triplet interactions
                 
                 
 		test_set_size = int(len(self.links) *fraction)

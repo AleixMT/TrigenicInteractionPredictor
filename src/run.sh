@@ -1,4 +1,4 @@
-#!/bin/bash
+s#!/bin/bash
 
 # Generate independent calls to main script in order to run in parallel
 
