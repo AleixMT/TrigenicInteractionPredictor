@@ -195,7 +195,7 @@ class Model:
             for i in range(self.K):
                 for j in range(self.K):
                     for k in range(self.K):
-                        sumpr = 0.  # Acumulator of possibilities for all ratings
+                        sumpr = 0.  # Accumulator of possibilities for all ratings
                         for r in range(self.R):
                             sumpr += self.pr[i][j][k][r]
                         for r in range(
@@ -209,7 +209,7 @@ class Model:
         if self.dataType == self.dataType.ALL or self.dataType == self.dataType.digenic:
             for i in range(self.K):
                 for j in range(self.K):
-                    sumqr = 0.  # Acumulator of possibilities for all ratings
+                    sumqr = 0.  # Accumulator of possibilities for all ratings
                     for r in range(self.R):
                         sumqr += self.qr[i][j][r]
                     for r in range(
@@ -228,20 +228,18 @@ class Model:
     #
     # Arguments:
     # 1.- filename: File to read will be selected with this parameters
-    # 2.- selectedInteractionType: [trigenic|digenic|*] Type of interaction to select. "*" to select all.
-    # 3.- cutoffValue: selects the interaction as positive [1] with an adjusted genetic interaction score under
+    # 2.- cutoffValue: selects the interaction as positive [1] with an adjusted genetic interaction score under
     # this value or as negative [0] if not. Use sys.float_info.max or sys.float_info.min in this parameter for assuming
     # all positive or negative interactions.
     # · digenic interaction cut-off in the original article (p < 0.05, |e| > 0.08)
     # · trigenic NOVEL interactions cut-off in the original article (p < 0.05, t < -0.08)
     # all trigenic novel and modified interactions p < 0.05 + trigenic
-    # 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
-    # 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset
+    # 3.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
     # Return parameters:
     # Fills with data the next variables: links, nLinks, id_gene, gene_id, P.
     #
     # File Format:
-    # RAW Dataset S1
+    # RAW Data-set S1
     # 1.- Query strain ID
     # 2.- Query allele name
     # 3.- Array strain ID
@@ -275,7 +273,7 @@ class Model:
                 line = fileref.readline()
                 fields = re.split(r'\t+', line)
 
-                # Count how many fields there are. If 12, we are reading dataset S1 raw, if not, we are reading dataset S2
+                # Count fields, If 12, we are reading data-set S1 raw, if not, we are reading data-set S2
                 if len(fields) == 12:
                     reading_raw = 1
                 else:
@@ -284,13 +282,13 @@ class Model:
                 for line in fileref.readlines():
                     ####
                     # SELECT *
-                    # FROM dataset
+                    # FROM data-set
                     # WHERE P-value < 0.05
                     # AND Combined mutant type = ["trigenic"|"digenic"|"all"]
 
                     fields = re.split(r'\t+', line)  # obtain all fields from current line separated with tabs
 
-                    # dataset selection (with this step data is flatten and we can read from both types of dataset, s1 and s2)
+                    # With this step data is flatten and we can read from both types of dataset, s1 and s2
                     if reading_raw:
                         fields.pop(5)
 
@@ -299,9 +297,10 @@ class Model:
                         if fields[4] != self.dataType.name:
                             continue
 
-                    # Decide whether we want to consider positive vs negative interactions or novel vs digenic altered interactions
-                    # To do that we will use the P-value and cutoff value they use in the article
-                    # //RF different cutoff value (different criteria) for digenic interactions
+                    # Decide whether we want to consider positive vs negative interactions or novel vs digenic
+                    # altered interactions. To do that we will use the P-value and cutoff value they use in the article
+
+                    # //RF different cutoff value (different criteria) for digenic interactions in article
                     if float(fields[6]) >= 0.05:  # if P-Value < 0.05 no interaction
                         r = 0
                     elif float(fields[5]) < cutoff_value:  # if P-value > 0.05 and cutoff value < threshold interaction
@@ -316,7 +315,8 @@ class Model:
                     gene_triplet = fields[1].split('+')
                     gene_triplet.append(fields[3])
 
-                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them but it is the default mutant strain
+                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them
+                    # but it is the default mutant strain.
                     try:
                         gene_triplet.remove('hoΔ')
                     except ValueError:
@@ -324,7 +324,8 @@ class Model:
 
                     # REGISTER ALLELES
                     id_gene_triplet = []
-                    for gene in gene_triplet:  # for every gene in the triplet except ho\delta which will result in a digenic interaction
+                    # for every gene in the triplet except ho\delta which will result in a digenic interaction
+                    for gene in gene_triplet:
                         if gene not in self.gene_id.keys():  # gene has not been seen by algorithm
                             self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
                             self.id_gene[gid] = gene  # assign a new gene to this gid
@@ -383,12 +384,12 @@ class Model:
 
     # Method getTrainTest:
     #
-    # Description: Initializes data structures with a previously train-test 5-folded dataset.
+    # Description: Initializes data structures with a previously train-test 5-folded data-set.
     # Reads input links, nLinks and test_links from train and test file in the format name1_name2_name3 + \t + rating
     #
     # Arguments:
-    # train_file_path   --> path to the file containing the train dataset
-    # test_file_path    --> path to the file containing the test dataset
+    # train_file_path   --> path to the file containing the train data-set
+    # test_file_path    --> path to the file containing the test data-set
     def get_train_test(self, train_file_path, test_file_path):
         try:
             gene_id = 0
@@ -401,7 +402,8 @@ class Model:
                     fields = line.strip().split('\t')  # Obtain all fields from current line separated with tabs
                     gene_name_triplet = fields[0].split('_')  # Obtain gene names
 
-                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them but it is the default mutant strain
+                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them
+                    # but it is the default mutant strain.
                     try:
                         gene_name_triplet.remove('hoΔ')
                     except ValueError:
@@ -472,10 +474,11 @@ class Model:
                     fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
                     gene_name_triplet = fields[0].split('_')
 
-                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them but it is the default mutant strain
+                    # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them
+                    # but it is the default mutant strain
                     try:
                         gene_name_triplet.remove('hoΔ')
-                    except:
+                    except ValueError:
                         pass
 
                     rating = int(fields[1])
@@ -502,9 +505,8 @@ class Model:
                     id_gene_triplet.sort()
 
                     # Concatenate id and genes to create the key string
-                    str_name_gene_triplet = '_'.join(gene_name_triplet)
-                    str_gene_triplet = '_'.join(
-                        id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
+                    # joins genes with an underscore in between a triplet of genes
+                    str_gene_triplet = '_'.join(id_gene_triplet)
 
                     try:
                         # link between g1, g2 and g3 with rating r it's been seen +1 times
@@ -530,7 +532,6 @@ class Model:
                             self.dtest_links[str_gene_triplet] = [0] * 2
                             self.dtest_links[str_gene_triplet][rating] += 1
 
-                # //RF self.P is initialized two times using data from train and from test
                 self.P = len(self.id_gene)  # get number of users
                 file_ref.close()
 
@@ -562,23 +563,24 @@ class Model:
     def triplet_fold(self):
         test_set_size = int(len(self.links) / 5)
 
-        # linealization of dictionary to use choice method
-        arraylinks = []
+        # Linearization of dictionary to use choice method
+        array_links = []
         for triplet, rating in self.links.items():
-            arraylinks.append(triplet)
+            array_links.append(triplet)
 
         loop = 0
 
         while loop < test_set_size:
             try:
-                triplet = np.random.choice(arraylinks)  # take a triplet
+                triplet = np.random.choice(array_links)  # take a triplet
 
                 ids = triplet.split("_")  # split it
 
                 # Obtain names for the genes in the triplet.
                 names = []
                 for identifier in ids:
-                    if self.gene_num_aparitions[int(identifier)] == 1:  # check that there's more than one aparition of that gene
+                    # check that there's more than one aparition of that gene
+                    if self.gene_num_aparitions[int(identifier)] == 1:
                         raise ValueError(
                             "Triplet " + triplet + " has at least one gene with just one aparition. Choosing randomly another")
                     else:
@@ -602,27 +604,28 @@ class Model:
                 str_names = '_'.join(names)
                 self.nLinks.pop(str_names)  # delete aparition from the gene name dictionary
                 self.links.pop(triplet)  # delete aparition from the gene ID dictionary
-                arraylinks.remove(triplet)  # delete triplet from the linearized array
+                array_links.remove(triplet)  # delete triplet from the linearized array
                 loop += 1
             except ValueError as error:
                 pass
 
-    def triplet_fast_fold(self, fraction=0.2, output=None,
-                          folds=None):  # if folds == 'yes' generate and print all training & test sets; fraction = relative size of test set; test_set only triplet interactions
+    # if folds == 'yes' generate and print all training & test sets; fraction = relative
+    # size of test set; test_set only triplet interactions
+    def triplet_fast_fold(self, fraction=0.2, output=None, folds=None):
 
         test_set_size = int(len(self.links) * fraction)
         rest = len(self.links) % test_set_size
-        nfolds = int(1 / fraction)
+        num_folds = int(1 / fraction)
 
-        arraylinks = []
+        array_links = []
         for triplet, rating in self.links.items():
-            arraylinks.append(triplet)
+            array_links.append(triplet)
         darraylinks = []
         for pair, rating in self.dlinks.items():
             darraylinks.append(pair)
 
-        ## we shuffle the arraylinks list and then make equal splits
-        np.random.shuffle(arraylinks)
+        # We shuffle the arraylinks list and then make equal splits
+        np.random.shuffle(array_links)
 
         if output:
             trname_file = 'train.dat'
@@ -630,12 +633,12 @@ class Model:
             outf_train = codecs.open(trname_file, encoding='utf-8', mode="w+")
             outf_test = codecs.open(tname_file, encoding='utf-8', mode="w+")
             frange = 0  ##print only one fold
-            if folds == 'yes': frange = nfolds
+            if folds == 'yes': frange = num_folds
             ta_name = []
             of_ta = []
             tra_name = []
             of_tra = []
-            for i in range(nfolds):  ##create all train test file names & open file handles
+            for i in range(num_folds):  ##create all train test file names & open file handles
                 ta_name.append('test%d.dat' % (i))
                 of_ta.append(codecs.open(ta_name[i], encoding='utf-8', mode="w+"))
                 tra_name.append('train%d.dat' % (i))
@@ -645,23 +648,23 @@ class Model:
         test = []
         train = []
 
-        for i in range(nfolds):
-            test.append(arraylinks[test_set_size * i:test_set_size * (i + 1)])
+        for i in range(num_folds):
+            test.append(array_links[test_set_size * i:test_set_size * (i + 1)])
             if i > 0: train += test[i]
 
         for j in range(rest):
-            print(test_set_size * nfolds + j, len(arraylinks))
-            test[nfolds - 1].append(arraylinks[test_set_size * nfolds + j])
+            print(test_set_size * num_folds + j, len(array_links))
+            test[num_folds - 1].append(array_links[test_set_size * num_folds + j])
 
-        ##all remaining triplets are put inthe last test set.
+        # All remaining triplets are put in the last test set.
 
-        train += arraylinks[test_set_size * nfolds:]
+        train += array_links[test_set_size * num_folds:]
 
-        frange = 0  ##print only one fold
+        frange = 0  # Print only one fold
         if folds == 'yes':
-            frange = nfolds
+            frange = num_folds
 
-        ##first create & store test and train for this run
+        # First create & store test and train for this run
         for triplet in test[0]:
             rating = 1
             if self.links[triplet][0]: rating = 0
@@ -694,10 +697,10 @@ class Model:
                 outf_test.write(data)
                 outf_test.flush()
 
-        ##print remaining test sets
+        # Print remaining test sets
         print('remaining test sets')
 
-        for f in range(1, nfolds):
+        for f in range(1, num_folds):
             print('fold', f, len(test[f]))
 
             for triplet in test[f]:
