@@ -141,3 +141,6 @@ venv/*
 venv/*
 data/DEFINITIVE_RESULTS
 doc/*.tex~
+
+# PDFs in this folder are actually product of a compilation and shouldn't be uploaded to git
+doc/*.pdf
