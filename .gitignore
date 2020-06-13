@@ -134,6 +134,8 @@ src/venv2/*
 src/venv/*
 src/batch_commands.sh
 *.aux
+venv
+venv/*
 *.log
 *.a
 venv/*

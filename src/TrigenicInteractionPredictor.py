@@ -50,7 +50,7 @@ class Model:
         self.npr = []
 
         # Matrix of ratings. rows: relation between gene1, gene2 and gene3 with the format "id1_id2_id3" in links,
-        # and "namegene1_namegene2_namegene3" in nlinks.
+        # and "namegene1_namegene2_namegene3" in nLinks.
         # columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1, gene2
         #  and gene3 with rating r
         self.nlinks = {}
@@ -188,7 +188,7 @@ class Model:
     # 4.- discard: [0|1] Add assays that are under the cutoffValue or discard them. By-default 0.
     # 5.- numlines: [0...sys.maxint] Allows to set the number of lines that are read from the dataset
     # Return parameters:
-    # Fills with input_data the next variables: links, nlinks, id_gene, gene_id, P.
+    # Fills with input_data the next variables: links, nLinks, id_gene, gene_id, P.
     #
     # File Format:
     # RAW Dataset S1
@@ -317,7 +317,7 @@ class Model:
             print('Error, file does not exist or can\'t be read')
             print(error)
 
-    # Method that reads input_data links,nlinks and test_link form train and test files as 2name1_name2_name3\trating
+    # Method that reads input_data links,nLinks and test_link form train and test files as 2name1_name2_name3\trating
     def get_traintest(self, trainfile, testfile):
         try:
             gid = 0
@@ -436,7 +436,7 @@ class Model:
     # test set to validate that training. All triplets of a certain test_set are not present in the corresponding train_
     # set.
     #
-    # PRE: Data that is going to be split is stored in self.links and self.nlinks. self.uniqueg stores apparition of every
+    # PRE: Data that is going to be split is stored in self.links and self.nLinks. self.uniqueg stores apparition of every
     # gene so is coherent with self.links and self.n_links dictionaries.
     # POST: All internal input_data structures remain UNTOUCHED. 2 * num_folds files will be created, each half for train and
     # test.

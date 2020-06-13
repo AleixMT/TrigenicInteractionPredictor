@@ -63,7 +63,7 @@ if __name__ == "__main__":
 	print(msg)
 
 	model = Model()
-	model.get_traintest(trainfile,testfile)
+	model.get_train_test(trainfile, testfile)
 #	model.fast_fold(output=1)
 
 	print("\nStarting algorithm...")
