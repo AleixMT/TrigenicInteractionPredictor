@@ -140,3 +140,4 @@ venv/*
 *.a
 venv/*
 data/DEFINITIVE_RESULTS
+doc/*.tex~
