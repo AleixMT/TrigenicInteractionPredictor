@@ -144,3 +144,6 @@ doc/*.tex~
 
 # PDFs in this folder are actually product of a compilation and shouldn't be uploaded to git
 doc/*.pdf
+
+# Exception to the idea folder, where we want to keep a dictionary for our own spellings
+!/.idea/dictionaries/*

@@ -64,8 +64,8 @@ class Model:
         self.nLinks = {}
         self.links = {}
 
-        # Matrix of ratings dyadic interactions. rows: relation between gene1 and gene2 with the format "id1_id2" in links,
-        # and "nameGene1_nameGene2" in nLinks.
+        # Matrix of ratings dyadic interactions. rows: relation between gene1 and gene2 with the format "id1_id2"
+        # in links and "nameGene1_nameGene2" in nLinks.
         # columns: ratings (in this case 0 or 1). content: number of times seen relation between gene1 and gene2
         # with rating r
         self.ndlinks = {}
@@ -80,7 +80,7 @@ class Model:
         self.results = []
 
         # Relates the id gene with its number of interactions
-        self.uniqueg = {}
+        self.gene_num_aparitions = {}
 
         # Describes how good our model explains our data
         self.likelihood = 0
@@ -106,8 +106,8 @@ class Model:
 
     # Method initializeParameters:
     #
-    # Description: Initializes theta and pr with random values and ntheta and npr with random values.
-    # We will use pr and theta to do the iteration and npr and ntheta to store the new values
+    # Description: Initializes theta and pr with random values and nTheta and npr with random values.
+    # We will use pr and theta to do the iteration and npr and nTheta to store the new values
     #
     # Arguments:
     # 1.- K (number of group of genes) can be given using this method directly. Calling the method
@@ -328,13 +328,13 @@ class Model:
                         if gene not in self.gene_id.keys():  # gene has not been seen by algorithm
                             self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
                             self.id_gene[gid] = gene  # assign a new gene to this gid
-                            self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
+                            self.gene_num_aparitions[n1] = 0  # when user identified by n1 is the first time found
                             gid += 1  # update index gid
                         else:  # gene is already registered
                             n1 = self.gene_id[gene]  # get gid from gene, already registered
 
                         # REGISTER NUMBER OF INTERACTIONS
-                        self.uniqueg[n1] += 1  # indicates number of interactions for gene identified by id
+                        self.gene_num_aparitions[n1] += 1  # indicates number of interactions for gene identified by id
 
                         # save ID from gene
                         id_gene_triplet.append(str(n1))
@@ -391,7 +391,7 @@ class Model:
     # test_file_path    --> path to the file containing the test dataset
     def get_train_test(self, train_file_path, test_file_path):
         try:
-            gid = 0
+            gene_id = 0
 
             # Train file
             with codecs.open(train_file_path, encoding='utf-8', mode='r') as file_ref:
@@ -399,64 +399,64 @@ class Model:
                 for line in file_ref.readlines():
 
                     fields = line.strip().split('\t')  # Obtain all fields from current line separated with tabs
-                    gene_triplet = fields[0].split('_')  # Obtain gene names
+                    gene_name_triplet = fields[0].split('_')  # Obtain gene names
 
                     # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them but it is the default mutant strain
                     try:
-                        gene_triplet.remove('hoΔ')
+                        gene_name_triplet.remove('hoΔ')
                     except ValueError:
                         pass
 
                     # Obtain rating for each triplet
-                    r = int(fields[1])
+                    rating = int(fields[1])
 
                     # REGISTER ALLELES
                     id_gene_triplet = []
-                    for gene in gene_triplet:  # for every gene in the triplet
-                        if gene not in self.gene_id.keys():  # gene hasn't been seen by algorithm
-                            self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
-                            self.id_gene[gid] = gene  # assign a new gene to this gid
-                            self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
-                            gid += 1  # update index gid
+                    for gene_name in gene_name_triplet:  # for every gene in the triplet
+                        if gene_name not in self.gene_id.keys():  # gene hasn't been seen by algorithm
+                            self.gene_id[gene_name], n1 = gene_id, gene_id  # assign a new gid to this gene
+                            self.id_gene[gene_id] = gene_name  # assign a new gene to this gid
+                            self.gene_num_aparitions[n1] = 0  # when user identified by n1 is the first time found
+                            gene_id += 1  # update index gid
                         else:  # gene is already registered
-                            n1 = self.gene_id[gene]  # get gid from gene, already registered
+                            n1 = self.gene_id[gene_name]  # get gid from gene, already registered
 
                         # REGISTER NUMBER OF INTERACTIONS
-                        self.uniqueg[n1] += 1  # indicates number of interactions for gene identified by id
+                        self.gene_num_aparitions[n1] += 1  # indicates number of interactions for gene identified by id
 
                         # save ID from gene
                         id_gene_triplet.append(str(n1))
 
                     # Sort identifier for unique key
-                    gene_triplet.sort()
+                    gene_name_triplet.sort()
                     id_gene_triplet.sort()
 
                     # Concatenate id and genes to create the key string
-                    str_name_gene_triplet = '_'.join(gene_triplet)
+                    str_name_gene_triplet = '_'.join(gene_name_triplet)
                     # joins genes with an underscore in between a triplet of genes
                     str_gene_triplet = '_'.join(id_gene_triplet)
 
-                    if len(gene_triplet) == 3:
+                    if len(gene_name_triplet) == 3:
 
                         try:
                             # link between g1, g2 and g3 with rating r it's been seen +1 times
-                            self.links[str_gene_triplet][r] += 1
-                            self.nLinks[str_name_gene_triplet][r] += 1
+                            self.links[str_gene_triplet][rating] += 1
+                            self.nLinks[str_name_gene_triplet][rating] += 1
                         except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
                             self.nLinks[str_name_gene_triplet] = [0] * 2
-                            self.nLinks[str_name_gene_triplet][r] += 1
+                            self.nLinks[str_name_gene_triplet][rating] += 1
                             self.links[str_gene_triplet] = [0] * 2
-                            self.links[str_gene_triplet][r] += 1
-                    if len(gene_triplet) == 2:
+                            self.links[str_gene_triplet][rating] += 1
+                    if len(gene_name_triplet) == 2:
                         try:
                             # link between g1, g2 and g3 with rating r it's been seen +1 times
-                            self.dlinks[str_gene_triplet][r] += 1
-                            self.ndlinks[str_name_gene_triplet][r] += 1
+                            self.dlinks[str_gene_triplet][rating] += 1
+                            self.ndlinks[str_name_gene_triplet][rating] += 1
                         except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
                             self.ndlinks[str_name_gene_triplet] = [0] * 2
-                            self.ndlinks[str_name_gene_triplet][r] += 1
+                            self.ndlinks[str_name_gene_triplet][rating] += 1
                             self.dlinks[str_gene_triplet] = [0] * 2
-                            self.dlinks[str_gene_triplet][r] += 1
+                            self.dlinks[str_gene_triplet][rating] += 1
 
                 # //RF self.P is initialized two times using data from train and from test
                 self.P = len(self.id_gene)  # get number of users
@@ -470,65 +470,65 @@ class Model:
                 for line in file_ref.readlines():
 
                     fields = re.split(r'\t+', line)  # obtain all fields from current line separeated with tabs
-                    gene_triplet = fields[0].split('_')
+                    gene_name_triplet = fields[0].split('_')
 
                     # Remove allele ho\delta for digenic interactions. Is a "filler" and it appears in all of them but it is the default mutant strain
                     try:
-                        gene_triplet.remove('hoΔ')
+                        gene_name_triplet.remove('hoΔ')
                     except:
                         pass
 
-                    r = int(fields[1])
+                    rating = int(fields[1])
 
                     # REGISTER ALLELES
                     id_gene_triplet = []
-                    for gene in gene_triplet:  # for every gene in the triplet
-                        if gene not in self.gene_id.keys():  # gene has not been seen by algorithm
-                            self.gene_id[gene], n1 = gid, gid  # assign a new gid to this gene
-                            self.id_gene[gid] = gene  # assign a new gene to this gid
-                            self.uniqueg[n1] = 0  # when user identified by n1 is the first time found
-                            gid += 1  # update index gid
+                    for gene_name in gene_name_triplet:  # for every gene in the triplet
+                        if gene_name not in self.gene_id.keys():  # gene has not been seen by algorithm
+                            self.gene_id[gene_name], n1 = gene_id, gene_id  # assign a new gid to this gene
+                            self.id_gene[gene_id] = gene_name  # assign a new gene to this gid
+                            self.gene_num_aparitions[n1] = 0  # when user identified by n1 is the first time found
+                            gene_id += 1  # update index gid
                         else:  # gene is already registered
-                            n1 = self.gene_id[gene]  # get gid from gene, already registered
+                            n1 = self.gene_id[gene_name]  # get gid from gene, already registered
 
                         # REGISTER NUMBER OF INTERACTIONS
-                        self.uniqueg[n1] += 1  # indicates number of interactions for gene identified by id
+                        self.gene_num_aparitions[n1] += 1  # indicates number of interactions for gene identified by id
 
                         # save ID from gene
                         id_gene_triplet.append(str(n1))
 
                     # Sort identifier for unique key
-                    gene_triplet.sort()
+                    gene_name_triplet.sort()
                     id_gene_triplet.sort()
 
                     # Concatenate id and genes to create the key string
-                    str_name_gene_triplet = '_'.join(gene_triplet)
+                    str_name_gene_triplet = '_'.join(gene_name_triplet)
                     str_gene_triplet = '_'.join(
                         id_gene_triplet)  # joins genes with an underscore in between a triplet of genes
 
                     try:
                         # link between g1, g2 and g3 with rating r it's been seen +1 times
-                        self.test_links[str_gene_triplet][r] += 1
+                        self.test_links[str_gene_triplet][rating] += 1
                     except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
                         self.test_links[str_gene_triplet] = [0] * 2
-                        self.test_links[str_gene_triplet][r] += 1
+                        self.test_links[str_gene_triplet][rating] += 1
 
-                    if len(gene_triplet) == 3:
+                    if len(gene_name_triplet) == 3:
 
                         try:
                             # link between g1, g2 and g3 with rating r it's been seen +1 times
-                            self.test_links[str_gene_triplet][r] += 1
+                            self.test_links[str_gene_triplet][rating] += 1
                         except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
                             self.test_links[str_gene_triplet] = [0] * 2
-                            self.test_links[str_gene_triplet][r] += 1
-                    if len(gene_triplet) == 2:
+                            self.test_links[str_gene_triplet][rating] += 1
+                    if len(gene_name_triplet) == 2:
 
                         try:
                             # link between g1, g2 and g3 with rating r it's been seen +1 times
-                            self.dtest_links[str_gene_triplet][r] += 1
+                            self.dtest_links[str_gene_triplet][rating] += 1
                         except KeyError:  # if link between n1 and n2 with rating r is the first time seen then
                             self.dtest_links[str_gene_triplet] = [0] * 2
-                            self.dtest_links[str_gene_triplet][r] += 1
+                            self.dtest_links[str_gene_triplet][rating] += 1
 
                 # //RF self.P is initialized two times using data from train and from test
                 self.P = len(self.id_gene)  # get number of users
@@ -578,11 +578,11 @@ class Model:
                 # Obtain names for the genes in the triplet.
                 names = []
                 for identifier in ids:
-                    if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
+                    if self.gene_num_aparitions[int(identifier)] == 1:  # check that there's more than one aparition of that gene
                         raise ValueError(
                             "Triplet " + triplet + " has at least one gene with just one aparition. Choosing randomly another")
                     else:
-                        self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+                        self.gene_num_aparitions[int(identifier)] -= 1  # substract one aparition to that gene.
                         name = self.id_gene[int(identifier)]  # obtain name
                         names.append(name)  # accumulate
 
@@ -677,7 +677,7 @@ class Model:
                 #				        if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
                 #					        raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
                 #				        else:
-                self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+                self.gene_num_aparitions[int(identifier)] -= 1  # substract one aparition to that gene.
                 name = self.id_gene[int(identifier)]  # obtain name
                 names.append(name)  # accumulate
 
@@ -840,7 +840,7 @@ class Model:
                 #				        if self.uniqueg[int(identifier)] == 1:  # check that there's more than one aparition of that gene
                 #					        raise ValueError("Triplet "+triplet+" has at least one gene with just one aparition. Choosing randomly another")
                 #				        else:
-                self.uniqueg[int(identifier)] -= 1  # substract one aparition to that gene.
+                self.gene_num_aparitions[int(identifier)] -= 1  # substract one aparition to that gene.
                 name = self.id_gene[int(identifier)]  # obtain name
                 names.append(name)  # accumulate
 
@@ -1099,7 +1099,7 @@ class Model:
             # Initialize dictionaries
             self.gene_id = {}
             self.id_gene = {}
-            self.uniqueg = {}
+            self.gene_num_aparitions = {}
             while True:
                 sam = str(file_reference.readline())
                 if sam != '\n':
@@ -1108,7 +1108,7 @@ class Model:
                         gene_id, gene_name, numaparitions = int(gene_id_str), str(gene_name_str), int(numaparitions_str)
                         self.gene_id[gene_name] = gene_id
                         self.id_gene[gene_id] = gene_name
-                        self.uniqueg[gene_id] = numaparitions
+                        self.gene_num_aparitions[gene_id] = numaparitions
                     # If we can't parse, skip the line
                     except ValueError:
                         pass
@@ -1321,7 +1321,7 @@ class Model:
         text += "\nLIST OF REGISTERED GENES\n"
         text += "Gene_ID\tGene_name\tnumAparitions\n"
         for gid in self.id_gene:
-            text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
+            text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.gene_num_aparitions[gid]) + '\n'
 
         #		# String of list of links by ID
         #		text += "\nLIST OF LINKS BETWEEN GENE IDS\n"
@@ -1449,7 +1449,7 @@ class Model:
         text += "\nLIST OF REGISTERED GENES\n"
         text += "Gene_ID\tGene_name\tnumAparitions\n"
         for gid in self.id_gene:
-            text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
+            text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.gene_num_aparitions[gid]) + '\n'
 
         return text
 
