@@ -133,6 +133,8 @@ src/Results/*
 src/venv2/*
 src/venv/*
 src/batch_commands.sh
+src/.idea
+
 *.aux
 venv
 venv/*
@@ -144,6 +146,11 @@ doc/*.tex~
 
 # PDFs in this folder are actually product of a compilation and shouldn't be uploaded to git
 doc/*.pdf
+doc/*.log
+doc/*.dvi
+doc/*.aux
+doc/*.synctex.gz
+doc/*.toc
 
 # Exception to the idea folder, where we want to keep a dictionary for our own spellings
 !.idea/dictionaries

@@ -72,7 +72,7 @@ class Model:
         self.dlinks = {}
 
         # Same format as the previous dictionary, but we will use this data structure to calculate metrics, and not for
-        # iterations
+        # num_iterations
         self.test_links = {}  # For triplets
         self.dtest_links = {}  # For pairs
 
@@ -1441,7 +1441,6 @@ class Model:
         text += "Number of links:\t" + str(len(self.links)) + "\n"
         text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
         text += "Number of possible ratings (R):\n" + str(self.R) + "\n\n"
-        #		text += "Likelihood vector: \n" + str(tostring_likelihood(self.vlikelihood))
         self.calculate_test_set_results()  # Implicit call to calculate results
         text += "\nTest set:" + str(print_tuples(self.results))
         metrics = self.calculate_metrics()  # Implicit call to calculate metrics
@@ -1753,20 +1752,20 @@ def compares1withs2():
 
 def usage(it, s, check, file, k):
     txt = '\n\nUsage:\n'
-    txt += './TrigenicInteractionPredictor.py [-h|--help][-i|--iterations=] <number_of_iterations> '
+    txt += './TrigenicInteractionPredictor.py [-h|--help][-i|--num_iterations=] <number_of_iterations> '
     txt += '[-s|--samples=] <number_of_samples> [-c|--check=] <frequency check> [-f|--file=] <file name> '
     txt += '[-k|--k=] <Number of groups>'
-    txt += '\n\n\nDescription of the arguments:\n[-h|--help] Calls help and exits the program.\n[-i|--iterations=]'
-    txt += ' Number of iterations done per sample for training the algorithm. More iterations increase the '
+    txt += '\n\n\nDescription of the arguments:\n[-h|--help] Calls help and exits the program.\n[-i|--num_iterations=]'
+    txt += ' Number of num_iterations done per sample for training the algorithm. More num_iterations increase the '
     txt += 'likelihood of the model.\n[-s|--samples=] Number of times the algorithm is computated.\n[-c|--check=]'
-    txt += ' Sets the number of iterations that need to pass for calculating the likelihood. Set it to 0 for just'
+    txt += ' Sets the number of num_iterations that need to pass for calculating the likelihood. Set it to 0 for just'
     txt += ' checking the likelihood after computating every sample. Calculate the likelihood frequently decreases'
     txt += ' the throughput of the algorithm.\n[-f|--file=] Relative (from this file) or absolute path to the'
     txt += ' Data File.\n[-t|--type=] Selects which kind of interactions are going to be selected. Three possible'
     txt += ' options available, trigenic, digenic or all, for selecting all types of interactions. In version 1.0, the'
     txt += ' algorithm is not capable of processing digenic interactions.\n[-v|--cutvalue=] Value used for '
     txt += 'determining if an interaction is positive or negative. \n[-k|--k=] Number of groups.\n\nArguments '
-    txt += 'can be left blank and the next default values will be selected:\n Number of iterations per sample: ' + str(
+    txt += 'can be left blank and the next default values will be selected:\n Number of num_iterations per sample: ' + str(
         it)
     txt += '\nNumber of samples: ' + str(s) + '\nLikelihood frequency checking: ' + str(
         check) + '\nData input_data file: ' + str(file)
@@ -1779,12 +1778,12 @@ def usage(it, s, check, file, k):
 
 # Main Function:
 #
-# Description: Computes the algorithm given a dataset and a number of iterations.
+# Description: Computes the algorithm given a dataset and a number of num_iterations.
 #
 # Arguments:
-# 1.- iterations: Number of iterations done by algorithm.
+# 1.- num_iterations: Number of num_iterations done by algorithm.
 # 2.- samples: Number of samples done by algorithm.
-# 3.- frequencyCheck: Number of iterations needed to check if likelihood has converged.
+# 3.- frequency_check: Number of num_iterations needed to check if likelihood has converged.
 # 4.- filename: Name of the dataset filename.
 # 5.- interactionType: Type of interaction selected.
 # 6.- cutOffValue: Value used to determine if an interaction is positive or negative.
@@ -1793,61 +1792,66 @@ def usage(it, s, check, file, k):
 if __name__ == "__main__":
     # Initialize model to access its fields
     model = Model()
+
     random.seed(os.getpid())
 
     # Default arguments
-    iterations = 10000
-    numSamples = 100
-    sampleIni = 0
-    frequencyCheck = 25
-    beginCheck = 100
+    num_iterations = 10000  # Number of num_iterations
+    num_samples = 100
+    sample_ini = 0
+    frequency_check = 25  # Freqeuncy of checking the likelihood
+    begin_check = 100  # Number of iterations needed to start checking the likelihood
+    k = 2
+    dataType = DataType.all
+
+    # train and test dataset
     train = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DATA_FOLDS/train0.dat'
     test = '/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DATA_FOLDS/test0.dat'
+
     outfilepath = ""  # Working directory
-    argk = 2
-    dataType = DataType.all
+
 
     # This method returns value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
     # This code block processes the arguments given to the program
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hi:n:s:f:b:o:t:e:k:d:",
-                                   ["help", "iterations=", "numSamples=", "sampleIni=", "likelihoodFrequencyCheck=", "beginFrequencyCheck=", "out=",
-                                    "train=", "test=", "k=", "dataType="])
+                                   ["help", "num-iterations=", "num-samples=", "sample-ini=", "frequency-check=", "begin-check=", "out=",
+                                    "train=", "test=", "k=", "data-type="])
 
         for opt, arg in opts:
             if opt in ("-h", "--help"):  # Show the usage if help is called
-                usage(iterations, numSamples, frequencyCheck, train, argk)
+                usage(num_iterations, num_samples, frequency_check, train, k)
                 exit(0)
-            elif opt in ("-i", "--iterations"):
+            elif opt in ("-i", "--num_iterations"):
                 if int(arg) < 1:
-                    print("\n\nERROR: Number of iterations should be a integer positive number!")
+                    print("\n\nERROR: Number of num_iterations should be a integer positive number!")
                     raise ValueError
-                iterations = int(arg)
-            elif opt in ("-n", "--numSamples"):
+                num_iterations = int(arg)
+            elif opt in ("-n", "--num_samples"):
                 if int(arg) < 1:
                     print("\n\nERROR: Number of samples should be a integer positive number")
                     raise ValueError
-                numSamples = int(arg)
-            elif opt in ("-s", "--sampleIni"):
+                num_samples = int(arg)
+            elif opt in ("-s", "--sample_ini"):
                 if int(arg) < 0:
                     print("\n\nERROR: Number of samples should be a integer positive number!")
                     raise ValueError
-                sampleIni = int(arg)
+                sample_ini = int(arg)
             elif opt in ("-f", "--likelyhoodFrequencyCheck"):
                 if int(arg) < 0:
                     print("\n\nERROR: frequency of checking should be a integer positive number or 0!")
                     raise ValueError
                 if int(arg) == 0:
-                    frequencyCheck = iterations + 1  # Checking likelihood just at the end
+                    frequency_check = num_iterations + 1  # Checking likelihood just at the end
                 else:
-                    frequencyCheck = int(arg)
+                    frequency_check = int(arg)
             elif opt in ("-b", "--beginFrequencyCheck"):
                 if int(arg) < 0:
                     print("\n\nERROR: Threshold to start checking likelihood should be a integer positive number or 0!")
                     raise ValueError
                 else:
-                    beginCheck = int(arg)
+                    begin_check = int(arg)
             elif opt in ("-o", "--out"):
                 if os.path.exists(str(arg)):
                     outfilepath = arg
@@ -1873,7 +1877,7 @@ if __name__ == "__main__":
                 if int(arg == 1):
                     print(
                         "\n\nWARNING:If number of groups is 1, algorithm is single-membership instead of mixed\n")
-                argk = int(arg)
+                k = int(arg)
             elif opt in ("-d", "--dataType"):
                 # Set enum of class Model to keep track of what type of data we are digesting
                 if dataType == DataType.all.name:
@@ -1892,17 +1896,17 @@ if __name__ == "__main__":
         sys.exit(2)
 
     # Display Warning
-    if int(frequencyCheck) > int(iterations):
-        print("\n\nWARNING: the likelihood frequency checking is bigger that the number of iterations per sample.")
+    if int(frequency_check) > int(num_iterations):
+        print("\n\nWARNING: the likelihood frequency checking is bigger that the number of num_iterations per sample.")
         print("likelihood will only be calculated at the end of every sample (equivalent to --check=0 or -c 0)\n")
 
     # Start Algorithm
     msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
-    msg += "**************************\n\nDoing " + str(numSamples) + " samples of " + str(iterations) + " iterations."
+    msg += "**************************\n\nDoing " + str(num_samples) + " samples of " + str(num_iterations) + " num_iterations."
     msg += "\nTrain-file is " + str(train) + "\n Test-file is " + str(test) + "\n Output directory is "
-    msg += + str(outfilepath) + "\nK value (number of groups) is " + str(argk) + "."
-    msg += "\nLikelihood will be computed every " + str(frequencyCheck) + " iterations after iteration number " + str(
-        beginCheck)
+    msg += + str(outfilepath) + "\nK value (number of groups) is " + str(k) + "."
+    msg += "\nLikelihood will be computed every " + str(frequency_check) + " num_iterations after iteration number " + str(
+        begin_check)
     print(msg)
 
     model.get_input(filename, cutOffValue, 0, 10000)
@@ -1913,16 +1917,16 @@ if __name__ == "__main__":
 
     for sample in range(int(samples)):
         print("Sample " + str(1 + sample) + ":")
-        model.initialize_parameters(argk)
+        model.initialize_parameters(k)
         print("Parameters have been initialized")
         like0 = model.compute_likelihood()
         print("· Likelihood 0 is " + str(like0))
         model.likelihoodVector.append([sample, 0, like0])  # append result into the global vector of likelihoods
 
-        for iteration in range(iterations):
+        for iteration in range(num_iterations):
             model.make_iteration()
 
-            if iteration % frequencyCheck == 0:
+            if iteration % frequency_check == 0:
                 like = model.compute_likelihood()
                 print("· Likelihood " + str(iteration + 1) + " is " + str(like))
                 model.likelihoodVector.append(
@@ -1933,7 +1937,7 @@ if __name__ == "__main__":
 
                     #					model.to_file("outprev" + str(sample) + ".csv") # // debug
                     #					model.get_data("out1.txt")
-                    outfile = 'outSamp%dK%d.csv' % (sample, argk)
+                    outfile = 'outSamp%dK%d.csv' % (sample, k)
                     #					model.to_file("late"+str(sample)+".csv") # // debug
                     model.to_file_short(outfile)  # // debug
                     #					model.calculate_test_set_results()

@@ -17,12 +17,12 @@ import numpy as np
 from TrigenicInteractionPredictor_23 import *
 # Main Function:
 #
-# Description: Computes the algorithm given a dataset and a number of iterations.
+# Description: Computes the algorithm given a dataset and a number of num_iterations.
 #
 # Arguments:
-# 1.- iterations: Number of iterations done by algorithm.
+# 1.- num_iterations: Number of num_iterations done by algorithm.
 # 2.- samples: Number of samples done by algorithm.
-# 3.- frequencyCheck: Number of iterations needed to check if likelihood has converged.
+# 3.- frequency_check: Number of num_iterations needed to check if likelihood has converged.
 # 4.- filename: Name of the dataset filename.
 # 5.- interactionType: Type of interaction selected.
 # 6.- cutOffValue: Value used to determine if an interaction is positive or negative.
@@ -57,9 +57,9 @@ if __name__ == "__main__":
 
 	
 	msg = "\n****************************************\n* Trigenic Interaction Predictor v 1.0 *\n**************"
-	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" iterations."
+	msg += "**************************\n\nDoing "+str(samples)+" samples of "+str(iterations)+" num_iterations."
 	msg += "**************************\n\nStarting from sample "+str(sampleini)+" ."
-	msg += "\nLikelihood will be calculated every "+str(frequencyCheck)+" iterations."
+	msg += "\nLikelihood will be calculated every "+str(frequencyCheck)+" num_iterations."
 	print(msg)
 
 	model = Model()

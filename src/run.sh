@@ -9,11 +9,11 @@ output_base_path=''
 arg_k=('1')
 trainfile_basename='train'
 testfile_basename='test'
-samplesPerProcess='1'
+samplesPerProcess='100'
 numProcessadors=$(nproc)
 
 # Override
-numProcessadors=2
+numProcessadors=12
 
 # create folder structure to run in parallel
 mkdir results
@@ -41,5 +41,6 @@ for k in ${arg_k[@]}; do
     done
 done
 
+# Run commands
 parallel --eta --bar --jobs $numProcessadors :::: batch_commands.sh
 
