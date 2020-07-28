@@ -1,27 +1,25 @@
-\documentclass[12pt]{report}
+\documentclass[11pt]{article}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Set Helvetica Font in Text and Math in LaTeX %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% //Spec: Use helvetica font (similar to Arial)
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage[scaled=1]{helvet}
 \usepackage[helvet]{sfmath}
-\everymath={\sf}
 
-\usepackage{amsmath}
-\usepackage{graphicx}
+\usepackage{setspace}  % Spacing between lines
+\usepackage{amsmath}  % math equation packages
+\usepackage{graphicx}  % To be able to insert images
+\everymath={\sf}  % Use helvetica to print equations too
 
-
+% //W: Kept because error if these commands are removed
 \title{}
-\date{11-06-2020}
-\author{Aleix Mariné-Tena}
+\date{}
+\author{}
 
 
 \begin{document}
   \begin{titlepage}
-    
     \centering
-    \includegraphics[width=0.5\textwidth]{imgs/logourv}
+    \includegraphics[width=0.5\textwidth]{imgs/logourv}  % Logo top
     \par        
     \vspace{1cm}
     \Large
@@ -33,7 +31,7 @@
     \vfill
 
     \vspace{1cm} 
-    \includegraphics[width=0.7\textwidth]{imgs/grafportada}
+    \includegraphics[width=0.7\textwidth]{imgs/grafportada}  % Portada img
     \par    
     \vspace{1cm}  
     \vfill
@@ -47,37 +45,117 @@
     \raggedleft
     {\large September 2020 \par}
   \end{titlepage}
-  % Cover
-  \maketitle
+  
   \pagenumbering{gobble}
   \newpage
 
-  
   % Index
   \pagenumbering{arabic}
   \tableofcontents
   \newpage
 
+\setlength{\parskip}{1em}  % Set vertical separation between paragraphs
+\onehalfspacing  % //Spec: spacing 1.5
+\normalsize  % //Spec: normalsize = 11 pt (declared at e headers)
+
+\section{Abstract}
+\par
+In this project we will implement a mathematical model based in Mixed-Membership Stochastic Blockmodels to be able to do predictions of the strength and type of genetic interaction between two or three genes from the human model organism \textit{Pichia pastoris}. 
+
+\par
+We will use a dataset of 501510 entries containing the fitness data from yeast triple and double \textit{knock-out}  mutants, each with a different combination of mutated genes.
+
+\par
+After validating the predictions of the model using different metrics, we will compare how genes related according to Mixed-Membership Stochastic Blockmodels are related in the Gene Onthology therms.
+
+\par
+\textbf{Keywords:} Mixed-membership stochastic blockmodels, machine learning, genetic interaction, Gene Onthology therms.
+
+
+\section{Introduction}
+The increasing amount of available information, the cheapening of computation power and the need for tools that are capable of digesting large amounts of data, have made machine learning one of the most efficient ways to do predictions from incomplete data.
+
+\par 
+Previous studies have shown the potential of Mixed-Membership Stochastic Blockmodels (MMSBM) to do accurate predictions from nonobserved data in a scalable algorithm. MMSBM is a machine-learning technique that can be applied to different kind of data to do accurate predictions if the training dataset is large enough. 
+
+\par
+In Biology, as in other science fields, available data in public databases is growing every year specially due to the advance in multiplexing techniques such as ELISA, DNA arrays or Luminex. That points out the increasing need of bioinformatics and machine-learning in biotechnology research in order to extract conclusion from these large amounts of data.
+
+\par
+In this study we put the focus on genetic interaction in the model organism \textit{Pichia pastoris} (\textit{P. pastoris}). There are big datasets available from genetic interaction in this organism between two or three genes, but they just represent ~1\% of the possible genetic interactions in (\textit{P. pastoris}). This fact makes this problem ideal for a machine-learning solution because it will give predictions from genetic interaction without having to do it experimentally in the lab. 
+
+\section{Objective}
+  \begin{itemize}
+    \item Develop an algorithm that is able to train from our dataset to do predictions from non-observed data.
+    \item Compute different models with different parameters and obtain their performance metrics in order to to select the best model.
+    \item Compare the clustering of the genes in our best model with the distance between their respective gene onthology therms.
+  \end{itemize}
+
+\section{Theoretical Background}
+  \subsection{Genetic Interaction}
   
-\section{Content}
-Must include:
-\begin{itemize}
-	\item Títol del treball
-	\item Nom de l’estudiant i del Tutor
-	\item Resum del TFG 
-	\item Normativa de Treball Fi de Grau Facultat d’Enologia
-	\item Introducció breu sobre els antecedents
-	\item Objectius
-- Metodologia i pla de treball
-- Resultats, amb una discussió crítica i raonada dels mateixos
-- Conclusions
-- Autoavaluació
-- Bibliografia
-- La memòria haurà d’incloure les fitxes de seguiment del tutor. 
-\end{itemize}
+  \subsection{\textit{P. pastoris} as a human model organism}
 
+  \subsection{Machine Learning}
+  
+  \subsection{Stochastic Blockmodels}
+  
+    \subsubsection{Mixed-Membership Stochastic Blockmodels}
+    
+  
+  
+  
+Fonament Teóric: Aquí hi aniria un seguit de subtemes. Primer aniria una explicació del què és el machine learning i el model mixed-membership SBM en llenguatge natural. Després faria servir les equacions per a ilustrar com l'apliquem en aquest cas per a les dades que tenim.  També comentaria l'organisme d'on treiem els gens (Pichia pastoris) ja que es un model humà i per tant els resultats es poden extrapolar per a diversos processos celulars. També cal explicar el funcionament dels gene onthology therm i les classificacions que hi ha.
 
-\section{Source}
-Tutorial in https://www.latex-tutorial.com/tutorials/first-document/
+\section{Methodologies}
+
+  \subsection{Materials}
+  This section covers all the elements needed to do our experiment. Since our experiment is an algorithm its materials are basically hardware and software elements.
+    \subsubsection{Hardware requirements}
+    The training algorithm is the only algorithm that is strongly hardware-demanding. Using just one thread of execution in a last generation user PC, the algorithm can delay at most two weeks to finish. That is why there is an extra layer of parallelization that allows to run the algorithm in parallel using the number of threads corresponding to the number of cores available in the machine running the algorithm. That allows to divide the execution time by the number of cores of the machine running the algorithm, so better performances are expected in better machines with more cores.
+    \subsubsection{Software Requirements}
+    Due to having big datasets, long scripts and the need for computing power, many software dependencies need to be satisfied before working with the algorithm. Some are completely necessary and some others are just accessories for comodity and data visualization.
+    \par 
+    Anyway, since there are many tools to download and configure a side project
+      \paragraph{Python3}     
+      The main algorithm is written in Python3 so it needs a Python3 interpreter in order to run the code. The algorithm also uses the following Python3 packages that need to be installed:
+        \begin{itemize}
+          \item NumPy: Used for random picking function.
+          \item codecs: To read from different files.
+          \item matplotlib: To create all the graphics from the results.
+        \end{itemize}
+      \paragraph{PyPy3}
+      PyPy3 is a Python3 interpreter that runs much faster in many cases. We strongly recommend to use this interpreter since it reduces the computation time of the training algorithm.
+      \paragraph{Linux}
+      Even though Python scripts are portable, we strongly recommend to use Linux to run the script. The last version of the code is tested in Ubuntu 20.04 LTS Focal.
+      \paragraph{GNU-parallel}
+      GNU-parallel is a Linux utility that allows to easily run batches of commands in parallel. It is not needed to run the main algorithm, but is needed to run the parallelization layer, which is strongly recommended to do.
+      \paragraph{Git}
+      Git is a software versioning tool to maintain and develop software. Git is needed at least to clone the repository where all the datasets and scripts are stored. 
+      \par
+      Also, because of the need to store all the datasets in the same repository, the complementary utility Git-LFS was installed in the repository. This utility allows to work with big datasets in the repository without sacrificing speed when cloning and pulling.
+      \par 
+      A .gitignore file was defined for all the possible junk, temporals and product of compilation for our repository in order to ignore all those files when updating the repository.
+      \paragraph{LaTeX}
+      The documentation was written in LaTeX so a LaTeX compilator is needed to obtain the final document of the documentation.
+
+  \subsection{Design}
+  Disseny: Esquema de funcionament del software amb respecte a la especificació.
+
+  \subsection{Implementation}
+  Implementació: Funcionament del script principal (TrigenicInteractionPredictor\_23.py) a mig detall, a nivell del main, i de l'script que s'encarrega de fer el processament dels GO therm.
+
+\section{Results and Discussion}
+Resultats i discussió: Dades obtingudes al final de l'experiment i raonament de quines idees podem extreure d'aquestes dades. Aquí aniria el gràfic de AUC vs held-outlikelihood amb les dades agrupades segons k i la justificació de la k que triem com a millor. També anirien els resultats que extreurem de la part dels GO therm.
+
+\section{Conclusions}
+Conclusions del treball
+
+\section{Bibliography}
+http://www.urv.cat/ca/vida-campus/serveis/crai/que-us-oferim/suport-investigacio/citacio/
+
+\section{Autoevaluation}
+
+\section{Annex}
 
 \end{document}
