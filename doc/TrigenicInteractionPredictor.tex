@@ -82,17 +82,62 @@ Previous studies have shown the potential of Mixed-Membership Stochastic Blockmo
 In Biology, as in other science fields, available data in public databases is growing every year specially due to the advance in multiplexing techniques such as ELISA, DNA arrays or Luminex. That points out the increasing need of bioinformatics and machine-learning in biotechnology research in order to extract conclusion from these large amounts of data.
 
 \par
-In this study we put the focus on genetic interaction in the model organism \textit{Pichia pastoris} (\textit{P. pastoris}). There are big datasets available from genetic interaction in this organism between two or three genes, but they just represent ~1\% of the possible genetic interactions in (\textit{P. pastoris}). This fact makes this problem ideal for a machine-learning solution because it will give predictions from genetic interaction without having to do it experimentally in the lab. 
+In this study we put the focus on genetic interaction in the human model organism \textit{Pichia pastoris} (\textit{P. pastoris}). There are big datasets available of genetic interaction between two or three genes in this organism, but they just represent ~1\% of the possible genetic interactions in (\textit{P. pastoris}). This fact makes this problem ideal for a machine-learning solution because it will give predictions from genetic interaction without having to do it experimentally in the lab. 
 
 \section{Objective}
   \begin{itemize}
     \item Develop an algorithm that is able to train from our dataset to do predictions from non-observed data.
-    \item Compute different models with different parameters and obtain their performance metrics in order to to select the best model.
+    \item Compute different models with different parameters and obtain their performance metrics in order to select the best model.
     \item Compare the clustering of the genes in our best model with the distance between their respective gene onthology therms.
   \end{itemize}
 
 \section{Theoretical Background}
   \subsection{Genetic Interaction}
+    The central dogma of biochemistry states that the information in most living beings flows from genes, which are the fundamental elements of the genetic material, to proteins and RNA, which are the responsible for many heterogeneous functions in the cell: structural, reaction catalysis, signaling, transcription factors...
+    
+     \par 
+    We can understand genetics following a "static" approach in which each gene is studied individually to determine its function and to determine what are the chemical and physical conditions needed in the cell for that particular gene to activate and give its final product (protein or RNA). 
+
+    \par 
+    But that is just a simplification from reality since Genetics has a dynamic and very complex behaviour, specially in superior organisms: Genes and their products are interacting with each other in many ways. Usually, this interactions are very subtile and have functions that have not been discovered yet. 
+    
+    \par 
+    So, understanding the way in which genes and their products interact with each other can be a difficult task, since many involved factors are still unknown. But, experimentally, observing a chosen phenoype, we can determine if two or more genes are actually interacting, following the next definition:  
+    
+    \paragraph{Genetic Interaction} \textit{Genetic interaction is a phenomenon that occur when two or more mutant alleles in a single individual combine to result in a phenotype that is different from the expected phenotype when these alleles are tested separately in different individuals.}
+
+    \par
+    For example, let A and B be the only two genes present in \textit{P. pastoris} that code for an enzyme responsible of a step in a vital pathway. Also, let \textbf{fitness} be a numeric phenotype than can be calculated as the ratio between the real diameter of the colony and the diameter of the \textit{wild-type} colony. 
+    
+    \par
+    When the gene A is non-functional or missing, gene B can replace gene A's function and vice versa. This process allows \textit{P. pastoris} to grow even when some vital genes are deleted. Consequently, the fitness phenotype when A or B are deleted in a individual should be ~1 or \textbf{non-lethal}.
+
+    \par
+    But if we delete gene A and B in the same individual, we will find that the fitness phenotype is 0 because \textit{P. pastoris} will not be able to grow up, because there is no gene this time that can replace the function of the lost vital genes.
+
+    \par
+    Knowing all the above we can realise that A and B are interacting because when deleted in the same individual the obtained phenotype is different from the expected phenotype: Since genes A and B have \textbf{non-lethal} phenotype when deleted separately, we expect the same when combined in the same individual. Note that this is an ilustrative example and genetic interaction is not always so drastic and clear.
+    
+    \par
+    The study of the fitness phenotype allows to easily determine how lethal the supression of genes can be, and also gives us the possibility of defining a formula to calculate a parameter that expresses the difference between the observed and the expected fitness of a mutant colony. Given a certain threshold of this parameter we can affirm that there is genetic interaction and also we can determine what type of genetic interaction is happening. 
+
+      \subsubsection{Types of genetic interaction}
+      We will consider two main types of interaction:
+      \begin{enumerate}
+        \item \textbf{Negative genetic interaction:} Occurs when a combination of mutations leads to a fitness defect that is more exacerbated than expected. 
+		\begin{itemize}
+        \item \textbf{Synthetic lethality} occurs when two \textit{nonletal} mutations generate a \textit{lethal} mutant when combined.
+        \end{itemize}
+
+        \item \textbf{Positive genetic interaction:} Occurs when a combination of mutations leads to a fitness greater than expected. 
+		\begin{itemize}
+        \item \textbf{Genetic suppression}: Occurs when the mutations in the fitness defect of a query mutant is alleviated by a mutation in a second gene. 
+        \end{itemize}
+      \end{enumerate}
+
+
+
+
   
   \subsection{\textit{P. pastoris} as a human model organism}
 
