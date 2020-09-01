@@ -4,12 +4,12 @@
 
 python_interpreter='pypy3'
 trigenicInteractionPredictor='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/src/TrigenicInteractionPredictor.py'
-traintest_datasets_folder='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/folds/'
+traintest_datasets_folder='/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DATA_FOLDS/'
 output_base_path=''
 arg_k=('1')
 trainfile_basename='train'
 testfile_basename='test'
-samplesPerProcess='100'
+samplesPerProcess='5'
 numProcessadors=$(nproc)
 
 # Override
@@ -35,8 +35,8 @@ rm batch_commands.sh
 # Generate commands
 for k in ${arg_k[@]}; do
     for ((fold=0; fold<5; fold++)); do
-        for ((sample=0; sample<100; sample+=samplesPerProcess)); do
-            echo -e $python_interpreter $trigenicInteractionPredictor --numSamples=$samplesPerProcess --sampleIni=$sample --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold/ >> batch_commands.sh
+        for ((sample=0; sample<10; sample+=samplesPerProcess)); do
+            echo -e $python_interpreter $trigenicInteractionPredictor --num_samples=$samplesPerProcess --sample_ini=$sample --train=$traintest_datasets_folder$trainfile_basename$fold.dat --test=$traintest_datasets_folder$testfile_basename$fold.dat --k=$k --out=$output_base_path/K$k/fold$fold/ >> batch_commands.sh
         done
     done
 done

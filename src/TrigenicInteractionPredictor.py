@@ -851,13 +851,14 @@ class Model:
         text += "Number of groups of genes (K):\n" + str(self.K) + "\n"
         text += "Number of possible ratings (R):\n" + str(self.R) + "\n\n"
         self.calculate_test_set_results()  # Implicit call to calculate results
-        text += "\nTest set:" + str(print_tuples(self.results))
         metrics = self.calculate_metrics()  # Implicit call to calculate metrics
         text += "\nMetrics:\nPrecision\tRecall\tFallout\tAUC\n"
         text += str(metrics[0]) + "\t" + str(metrics[1]) + "\t" + str(metrics[2]) + "\t" + str(metrics[3])
+        
+        text += "\nTest set:" + str(print_tuples(self.results))
 
         # String of list of genes
-        text += "\nLIST OF REGISTERED GENES\n"
+        '''text += "\nLIST OF REGISTERED GENES\n"
         text += "Gene_ID\tGene_name\tnumAparitions\n"
         for gid in self.id_gene:
             text += str(gid) + "\t" + self.id_gene[gid] + "\t" + str(self.uniqueg[gid]) + '\n'
@@ -879,7 +880,7 @@ class Model:
         # Fpr both theta/ntheta vector
         text += "\nTHETA VECTOR\n"
         text += print_vector(self.theta)
-
+'''
         return text
 
     # Method toFile(string):
@@ -1226,6 +1227,7 @@ if __name__ == "__main__":
                 argk = int(arg)
 
     except getopt.GetoptError:
+        print("Argument error. Aborting")
         sys.exit(2)
     except ValueError:
         sys.exit(2)

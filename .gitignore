@@ -154,3 +154,6 @@ doc/*.tex~
 # Exception to the idea folder, where we want to keep a dictionary for our own spellings
 !.idea/dictionaries
 !.idea/dictionaries/*
+
+# I ignore the raw results because they are super heavy, even for gitlfs (8,0 GB). Furthermore, they are summarized in the reduced results, which are uploaded to the repo
+data/DEFINITIVE_RESULTS 

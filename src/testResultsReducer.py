@@ -20,7 +20,7 @@ import math
 
 if __name__ == "__main__":
     # Default arguments
-    results_folder = "/home/aleixmt/Escritorio/TrigenicInteractionPredictor/data/DEFINITIVE_RESULTS/"
+    results_folder = "../data/DEFINITIVE_RESULTS/"
 
     # This block returns a value consisting of two elements: the first is a list of (option, value) pairs.
     # The second is the list of program arguments left after the option list was stripped.
